@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Für Lehrende – 3D-Würfel</title>
+  <link rel="stylesheet" href="css/stil.css">
+  <style> pre { background: #22252B; color: #F6F4EF; padding: 14px 16px; border-radius: 12px; overflow-x: auto; font-size: 14px; line-height: 1.5; } </style>
+</head>
+<body>
+<header class="kopf"><div class="huelle">
+  <a class="logo" href="index.html"><span class="logo-wuerfel"><i></i><i></i><i></i><i></i></span>3D-Würfel</a>
+  <nav class="navi">
+    <a href="index.html">Start</a>
+    <a href="wuerfel.html">Würfel basteln</a>
+    <a href="unterricht.html">Unterrichtsideen</a>
+    <a href="stationen.html">Stationskarten</a>
+    <a href="anleitung.html" aria-current="page">Für Lehrende</a>
+  </nav>
+</div></header>
+
+<main class="huelle">
+  <h1 style="margin-top:36px">Für Lehrende: Einrichten und erweitern</h1>
+
+  <h2>1 · Online stellen (GitHub Pages)</h2>
+  <ol>
+    <li>Den ganzen Ordner (mit <code>index.html</code>, <code>ar.html</code>, <code>js/</code>, <code>marker/</code> …) in ein GitHub-Repository hochladen, z. B. als Unterordner <code>wuerfel/</code> in einem bestehenden Kurs-Repository.</li>
+    <li>In den Repository-Einstellungen unter <i>Pages</i> den Branch auswählen, falls Pages noch nicht aktiv ist.</li>
+    <li>Die Seite ist dann unter <code>https://BENUTZERNAME.github.io/REPOSITORY/wuerfel/</code> erreichbar.</li>
+  </ol>
+  <div class="hinweis">Die Kamera funktioniert nur über <b>https</b> (GitHub Pages ist automatisch https). Eine Datei, die direkt vom Computer geöffnet wird, darf die Kamera nicht verwenden.</div>
+
+  <h2>2 · Unterstützte Geräte</h2>
+  <p>Aktuelle Browser auf iPad/iPhone (Safari), Android (Chrome) und Laptops mit Webcam. Die Erkennung läuft komplett auf dem Gerät, Kamerabilder werden nicht hochgeladen. Für die Seite selbst braucht man Internet, weil A-Frame und AR.js beim Öffnen nachgeladen werden.</p>
+
+  <h2>3 · Eigene Objekte hinzufügen</h2>
+  <p>Alle Objekte stehen in <code>js/objekte.js</code>. Ein neues Objekt fügt man als weiteren Eintrag in die Liste ein. Dafür gibt es zwei Wege:</p>
+  <h3>a) Eigenes 3D-Modell (.glb), z. B. aus Tinkercad</h3>
+  <p>In Tinkercad <i>Exportieren → .GLTF (.glb)</i> wählen und die Datei in einen Ordner <code>modelle/</code> legen. Dann eintragen:</p>
+<pre>{
+  "id": "rakete", "name": "Rakete", "emoji": "🚀",
+  "modell": "modelle/rakete.glb",
+  "modellGroesse": 0.02,          // Tinkercad rechnet in mm → verkleinern
+  "modellPosition": [0, -0.5, 0], // nach unten/oben schieben
+  "fakten": ["…", "…", "…"],
+  "frage": "…"
+},</pre>
+  <p class="klein">Die richtige Größe probiert man am besten in der <a href="vorschau.html">Vorschau</a> aus. Mit dem Knopf ▣ wird der Würfel (1,3 Einheiten) eingeblendet. Das Modell sollte ungefähr so groß wie der Würfel sein.</p>
+
+  <h3>b) Aus Grundformen bauen (wie die Tiere hier)</h3>
+<pre>{
+  "id": "schneemann", "name": "Schneemann", "emoji": "⛄", "skala": 1,
+  "teile": [
+    {"t": "sphere", "p": [0, -0.35, 0], "s": [0.7, 0.7, 0.7], "r": [0, 0, 0], "c": "#FFFFFF"},
+    {"t": "sphere", "p": [0, 0.2, 0],   "s": [0.5, 0.5, 0.5], "r": [0, 0, 0], "c": "#FFFFFF"},
+    {"t": "cone",   "p": [0, 0.2, 0.3], "s": [0.08, 0.25, 0.08], "r": [90, 0, 0], "c": "#F28C28"}
+  ],
+  "fakten": ["…"], "frage": "…"
+},</pre>
+  <p class="klein"><b>t</b> = Form (sphere, box, cylinder, cone) · <b>p</b> = Position [x, y, z] · <b>s</b> = Größe · <b>r</b> = Drehung in Grad · <b>c</b> = Farbe. Die y-Achse zeigt nach oben, z nach vorne zur Betrachterin. Ein Kegel zeigt ohne Drehung nach oben, mit <code>[90, 0, 0]</code> nach vorne.</p>
+
+  <h2>4 · Wenn es nicht klappt</h2>
+  <table class="karte" style="width:100%;border-collapse:collapse">
+    <tr><td style="padding:8px"><b>Kamera startet nicht</b></td><td style="padding:8px">Seite über https geöffnet? Kamera-Zugriff in den Browser-Einstellungen erlaubt? Auf iPads in Safari öffnen, nicht in einer eingebetteten Ansicht (z. B. in einer anderen App).</td></tr>
+    <tr><td style="padding:8px"><b>Würfel wird nicht erkannt</b></td><td style="padding:8px">Mehr Licht, keine Spiegelungen, Ränder frei lassen, Abstand 20–50 cm. Mit 100 % gedruckt?</td></tr>
+    <tr><td style="padding:8px"><b>Objekt springt beim Drehen</b></td><td style="padding:8px">Eine Seite ist verdreht oder an der falschen Stelle geklebt. Mit dem Bastelbogen vergleichen (siehe <a href="wuerfel.html">Würfel basteln</a>).</td></tr>
+    <tr><td style="padding:8px"><b>Objekt wackelt</b></td><td style="padding:8px">Würfel ruhiger halten, Gerät auf einen Ständer stellen, Licht verbessern.</td></tr>
+  </table>
+
+  <h2>5 · Wie es funktioniert</h2>
+  <p>Jede Würfelseite ist ein eigener Marker mit einem 4×4-Muster. AR.js erkennt im Kamerabild die schwarzen Quadrate und ermittelt, welche Seite zu sehen ist und wie sie liegt. Die Seite rechnet daraus die Würfelmitte aus und zeigt das Objekt nur auf der Seite an, die am direktesten zur Kamera schaut. Darum bleibt das Objekt beim Drehen an seinem Platz.</p>
+  <p class="klein">Dateien: <code>marker/seite1–6.patt</code> (Muster), <code>marker/seite1–6.png</code> (Bilder der Muster), <code>wuerfel-bastelbogen.pdf</code>, <code>texturen/</code> (Erde und Mond, selbst gezeichnet). Wer die Muster ändert, muss auch die .patt-Dateien neu erzeugen.</p>
+</main>
+
+<footer><div class="huelle">Technik: A-Frame 1.3 und AR.js 3.4.5 (Open Source, MIT-Lizenz).</div></footer>
+</body>
+</html>

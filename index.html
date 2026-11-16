@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>3D-Würfel – Entdecken mit Augmented Reality</title>
+  <link rel="stylesheet" href="css/stil.css">
+  <script src="js/objekte.js"></script>
+</head>
+<body>
+<header class="kopf"><div class="huelle">
+  <a class="logo" href="index.html"><span class="logo-wuerfel"><i></i><i></i><i></i><i></i></span>3D-Würfel</a>
+  <nav class="navi">
+    <a href="index.html" aria-current="page">Start</a>
+    <a href="wuerfel.html">Würfel basteln</a>
+    <a href="unterricht.html">Unterrichtsideen</a>
+    <a href="stationen.html">Stationskarten</a>
+    <a href="anleitung.html">Für Lehrende</a>
+  </nav>
+</div></header>
+
+<main class="huelle">
+  <section class="held">
+    <div>
+      <h1>Halte die Welt in deiner Hand.</h1>
+      <p>Bastle deinen eigenen Würfel, halte ihn vor die Kamera – und schon sitzt die Erde, ein Fuchs oder ein Marienkäfer darauf. Du drehst den Würfel und schaust dir alles von allen Seiten an.</p>
+      <div class="knopfreihe">
+        <a class="knopf" href="ar.html">📷 Kamera starten</a>
+        <a class="knopf zweit" href="vorschau.html">🖱️ Vorschau ohne Kamera</a>
+      </div>
+      <p class="klein" style="margin-top:14px">Funktioniert im Browser auf Tablet, Handy und Laptop – ohne App, ohne Anmeldung.</p>
+    </div>
+    <img src="bilder/wuerfel-3d.png" alt="Bastelwürfel mit bunten Rändern und schwarz-weißen Mustern, darüber schwebt die Erde">
+  </section>
+
+  <h2>So geht's</h2>
+  <div class="raster">
+    <div class="karte"><div class="schritt-nr" style="--farbe:var(--orange)">1</div><h3>Würfel basteln</h3>
+      <p>Bastelbogen in Originalgröße ausdrucken, ausschneiden, falten, kleben. <a href="wuerfel.html">Zum Bastelbogen</a></p></div>
+    <div class="karte"><div class="schritt-nr" style="--farbe:var(--tuerkis)">2</div><h3>Kamera starten</h3>
+      <p>„Kamera starten“ antippen und den Zugriff auf die Kamera erlauben.</p></div>
+    <div class="karte"><div class="schritt-nr" style="--farbe:var(--lila)">3</div><h3>Objekt wählen</h3>
+      <p>Oben ein Objekt antippen und den Würfel in die Kamera halten.</p></div>
+    <div class="karte"><div class="schritt-nr" style="--farbe:var(--gruen)">4</div><h3>Entdecken</h3>
+      <p>Würfel drehen, genau hinschauen, Steckbrief lesen, Forscherfrage beantworten.</p></div>
+  </div>
+
+  <h2>Was gibt es zu entdecken?</h2>
+  <div class="raster" id="galerie"></div>
+
+  <div class="hinweis">
+    <b>Tipp:</b> Halte den Würfel an zwei Ecken und verdecke die schwarzen Ränder nicht mit den Fingern. In einem hellen Raum ohne Spiegelungen funktioniert die Erkennung am besten.
+  </div>
+</main>
+
+<footer><div class="huelle">
+  Eigenes Würfeldesign und selbst gebaute 3D-Modelle. Technik: <a href="https://aframe.io">A-Frame</a> und <a href="https://ar-js-org.github.io/AR.js-Docs/">AR.js</a> (Open Source). Die Kamera-Bilder bleiben auf dem Gerät und werden nicht hochgeladen.
+</div></footer>
+
+<script>
+  (function () {
+    var g = document.getElementById("galerie");
+    window.OBJEKTE.forEach(function (o) {
+      var a = document.createElement("a");
+      a.className = "karte objekt-karte";
+      a.href = "vorschau.html?objekt=" + o.id;
+      a.innerHTML = '<span class="emoji">' + o.emoji + '</span><span><b>' + o.name + '</b><br><span class="klein">' + o.fakten[0] + '</span></span>';
+      g.appendChild(a);
+    });
+  })();
+</script>
+</body>
+</html>

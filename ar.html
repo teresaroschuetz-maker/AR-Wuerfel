@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>3D-Würfel – AR-Kamera</title>
+  <link rel="stylesheet" href="css/app.css">
+  <!-- A-Frame (3D im Browser) und AR.js (Markererkennung) -->
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js"></script>
+  <script src="js/objekte.js"></script>
+  <script src="js/bauen.js"></script>
+  <script src="js/ar.js"></script>
+</head>
+<body>
+  <a-scene embedded vr-mode-ui="enabled: false" loading-screen="enabled: false"
+           renderer="logarithmicDepthBuffer: true; antialias: true; colorManagement: true; precision: mediump"
+           arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono; patternRatio: 0.5; maxDetectionRate: 60"
+           wuerfel-ar>
+    <a-entity light="type: ambient; intensity: 0.75"></a-entity>
+    <a-entity light="type: directional; intensity: 0.75" position="0.6 1 1"></a-entity>
+
+    <!-- Die sechs Würfelseiten. Alle zeigen dasselbe Objekt; angezeigt wird jeweils nur die Seite,
+         die am besten zur Kamera schaut. -->
+    <a-marker type="pattern" url="marker/seite1.patt" data-seite="1" emitevents="true" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2"></a-marker>
+    <a-marker type="pattern" url="marker/seite2.patt" data-seite="2" emitevents="true" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2"></a-marker>
+    <a-marker type="pattern" url="marker/seite3.patt" data-seite="3" emitevents="true" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2"></a-marker>
+    <a-marker type="pattern" url="marker/seite4.patt" data-seite="4" emitevents="true" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2"></a-marker>
+    <a-marker type="pattern" url="marker/seite5.patt" data-seite="5" emitevents="true" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2"></a-marker>
+    <a-marker type="pattern" url="marker/seite6.patt" data-seite="6" emitevents="true" smooth="true" smooth-count="5" smooth-tolerance="0.01" smooth-threshold="2"></a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+
+  <div class="ui oben">
+    <div class="zeile">
+      <a class="rund" href="index.html" aria-label="Zur Startseite">←</a>
+      <div class="status" id="status">Halte den Würfel vor die Kamera</div>
+      <button class="rund" id="hilfeKnopf" aria-label="Hilfe" style="margin-left:auto">?</button>
+    </div>
+    <div class="leiste" id="leiste" aria-label="Objekt auswählen"></div>
+  </div>
+
+  <div class="ui unten">
+    <div class="steckbrief" id="steckbrief">
+      <div class="sb-kopf" id="sbKopf"><span class="sb-titel"></span><span class="sb-pfeil" id="sbPfeil">Steckbrief ▾</span></div>
+      <div class="sb-inhalt">
+        <ul class="sb-fakten"></ul>
+        <div class="sb-frage"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hilfe" id="hilfe" hidden>
+    <div class="hilfe-box">
+      <h2>So klappt es</h2>
+      <ol>
+        <li>Erlaube den Zugriff auf die Kamera.</li>
+        <li>Halte den Würfel an zwei Ecken. Die schwarzen Ränder dürfen <b>nicht</b> verdeckt sein.</li>
+        <li>Halte ihn 20–50 cm vor die Kamera. Im hellen Raum klappt es am besten. Achte auf Spiegelungen!</li>
+        <li>Drehe den Würfel langsam und schau dir das Objekt von allen Seiten an.</li>
+      </ol>
+      <button type="button" id="hilfeZu">Los geht's!</button>
+    </div>
+  </div>
+</body>
+</html>

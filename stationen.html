@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stationskarten – 3D-Würfel</title>
+  <link rel="stylesheet" href="css/stil.css">
+  <script src="js/objekte.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <style>
+    .karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 18px; }
+    .stationskarte { background: #fff; border-radius: 16px; box-shadow: var(--schatten); padding: 18px; display: grid;
+      grid-template-columns: 1fr 130px; gap: 12px; align-items: center; border: 3px solid var(--farbe); }
+    .stationskarte h3 { font-size: 24px; margin: 0 0 6px; }
+    .stationskarte .emoji { font-size: 40px; }
+    .stationskarte .frage { background: #FFF6E6; border-radius: 10px; padding: 8px 10px; font-size: 15px; margin-top: 8px; }
+    .stationskarte .qr svg, .stationskarte .qr img { width: 130px; height: 130px; display: block; }
+    .stationskarte .url { grid-column: 1 / -1; font-size: 11px; color: var(--grau); word-break: break-all; }
+    @media print {
+      .karten { grid-template-columns: 1fr 1fr; gap: 10mm; }
+      .stationskarte { box-shadow: none; break-inside: avoid; }
+      h1, .einleitung { display: none; }
+    }
+  </style>
+</head>
+<body>
+<header class="kopf"><div class="huelle">
+  <a class="logo" href="index.html"><span class="logo-wuerfel"><i></i><i></i><i></i><i></i></span>3D-Würfel</a>
+  <nav class="navi">
+    <a href="index.html">Start</a>
+    <a href="wuerfel.html">Würfel basteln</a>
+    <a href="unterricht.html">Unterrichtsideen</a>
+    <a href="stationen.html" aria-current="page">Stationskarten</a>
+    <a href="anleitung.html">Für Lehrende</a>
+  </nav>
+</div></header>
+
+<main class="huelle">
+  <h1 style="margin-top:36px">Stationskarten mit QR-Code</h1>
+  <div class="einleitung">
+    <p>Ausdrucken, an den Stationen auslegen, fertig. Die Kinder scannen den Code mit der Kamera-App des Tablets. Dann öffnet sich die AR-Kamera gleich mit dem richtigen Objekt.</p>
+    <div class="hinweis nicht-drucken" id="warnung" hidden><b>Hinweis:</b> Diese Seite ist gerade nicht über eine Internetadresse (https) geöffnet. Die QR-Codes funktionieren erst, wenn die Seite online ist, z. B. auf GitHub Pages.</div>
+    <div class="knopfreihe nicht-drucken"><button class="knopf" onclick="window.print()">🖨️ Karten drucken</button></div>
+  </div>
+  <div class="karten" id="karten"></div>
+</main>
+
+<footer><div class="huelle">QR-Codes werden direkt im Browser erzeugt (Bibliothek „qrcode-generator“).</div></footer>
+
+<script>
+  (function () {
+    var farben = ["#2F6FD6", "#7B5CC9", "#F28C28", "#22252B", "#E04F7A", "#3FA34D", "#1FA2A6", "#3FA34D"];
+    var basis = location.href.replace(/stationen\.html.*$/, "");
+    if (location.protocol !== "https:") document.getElementById("warnung").hidden = false;
+    var ziel = document.getElementById("karten");
+    window.OBJEKTE.forEach(function (o, i) {
+      var url = basis + "ar.html?objekt=" + encodeURIComponent(o.id);
+      var k = document.createElement("div");
+      k.className = "stationskarte";
+      k.style.setProperty("--farbe", farben[i % farben.length]);
+      k.innerHTML = '<div><div class="emoji">' + o.emoji + '</div><h3>' + o.name + '</h3>' +
+        '<div class="klein">① Code scannen ② Würfel vor die Kamera halten ③ Drehen und entdecken</div>' +
+        '<div class="frage">🔍 ' + (o.frage || "") + '</div></div><div class="qr"></div><div class="url"></div>';
+      k.querySelector(".url").textContent = url;
+      try {
+        var qr = qrcode(0, "M"); qr.addData(url); qr.make();
+        k.querySelector(".qr").innerHTML = qr.createSvgTag(4, 2);
+      } catch (e) {
+        k.querySelector(".qr").textContent = "(QR-Code nicht verfügbar – Adresse unten verwenden)";
+      }
+      ziel.appendChild(k);
+    });
+  })();
+</script>
+</body>
+</html>

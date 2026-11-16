@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>3D-Würfel – Vorschau ohne Kamera</title>
+  <link rel="stylesheet" href="css/app.css">
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="js/objekte.js"></script>
+  <script src="js/bauen.js"></script>
+  <script src="js/vorschau.js"></script>
+</head>
+<body>
+  <a-scene vr-mode-ui="enabled: false" loading-screen="enabled: false" background="color: #E9F3F1"
+           renderer="antialias: true; colorManagement: true" device-orientation-permission-ui="enabled: false">
+    <a-entity light="type: ambient; intensity: 0.75"></a-entity>
+    <a-entity light="type: directional; intensity: 0.8" position="0.6 1 1"></a-entity>
+    <a-entity id="drehteller" drehen-mit-maus>
+      <a-entity id="platz"></a-entity>
+      <a-entity id="wuerfelUmriss" visible="false"
+                geometry="primitive: box; width: 1.3; height: 1.3; depth: 1.3"
+                material="color: #1FA2A6; wireframe: true; opacity: 0.5; transparent: true"></a-entity>
+    </a-entity>
+    <a-entity id="kamera" camera="fov: 45" position="0 0.1 3.4" look-controls="enabled: false" wasd-controls="enabled: false"></a-entity>
+  </a-scene>
+
+  <div class="ui oben">
+    <div class="zeile">
+      <a class="rund" href="index.html" aria-label="Zur Startseite">←</a>
+      <div class="status">Vorschau – mit Maus oder Finger drehen</div>
+    </div>
+    <div class="leiste" id="leiste" aria-label="Objekt auswählen"></div>
+  </div>
+
+  <div class="ui unten">
+    <div class="werkzeuge">
+      <button class="rund" id="kleiner" aria-label="Kleiner">−</button>
+      <button class="rund" id="groesser" aria-label="Größer">+</button>
+      <button class="rund" id="umriss" aria-label="Würfel einblenden" title="Würfelgröße einblenden">▣</button>
+      <a class="rund" id="zuAR" href="ar.html" aria-label="Mit Kamera ansehen" title="Mit Kamera (AR) ansehen">📷</a>
+    </div>
+    <div class="steckbrief" id="steckbrief">
+      <div class="sb-kopf" id="sbKopf"><span class="sb-titel"></span><span class="sb-pfeil" id="sbPfeil">Steckbrief ▾</span></div>
+      <div class="sb-inhalt">
+        <ul class="sb-fakten"></ul>
+        <div class="sb-frage"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
