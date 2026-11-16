@@ -4,7 +4,85 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Unterrichtsideen – 3D-Würfel</title>
-  <link rel="stylesheet" href="css/stil.css">
+  <style>
+/* Gemeinsames Design – Farben wie die Würfelseiten */
+:root {
+  --orange: #F28C28; --tuerkis: #1FA2A6; --lila: #7B5CC9;
+  --gruen: #3FA34D; --blau: #2F6FD6; --pink: #E04F7A;
+  --text: #22252B; --grau: #5B6070; --hell: #F6F4EF; --karte: #FFFFFF;
+  --radius: 18px;
+  --schatten: 0 4px 18px rgba(30, 30, 50, .10);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text); background: var(--hell); line-height: 1.55; font-size: 17px;
+}
+a { color: var(--blau); }
+.huelle { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+
+/* Kopfzeile */
+.kopf { background: #fff; border-bottom: 1px solid #E7E3DA; position: sticky; top: 0; z-index: 10; }
+.kopf .huelle { display: flex; align-items: center; gap: 18px; min-height: 62px; flex-wrap: wrap; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 800; text-decoration: none; color: var(--text); font-size: 19px; }
+.logo-wuerfel { width: 30px; height: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; transform: rotate(-8deg); }
+.logo-wuerfel i { border-radius: 3px; }
+.logo-wuerfel i:nth-child(1) { background: var(--orange); } .logo-wuerfel i:nth-child(2) { background: var(--tuerkis); }
+.logo-wuerfel i:nth-child(3) { background: var(--lila); }   .logo-wuerfel i:nth-child(4) { background: var(--pink); }
+.navi { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.navi a { text-decoration: none; color: var(--grau); padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 15px; }
+.navi a:hover, .navi a[aria-current] { background: var(--hell); color: var(--text); }
+
+/* Bausteine */
+.held { padding: 48px 0 24px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 32px; align-items: center; }
+.held h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 14px; }
+.held p { font-size: 19px; color: var(--grau); margin: 0 0 22px; }
+.held img { width: 100%; border-radius: var(--radius); box-shadow: var(--schatten); background: #fff; }
+@media (max-width: 760px) { .held { grid-template-columns: 1fr; } }
+
+.knopf { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px; font-weight: 700;
+  text-decoration: none; border: 0; cursor: pointer; font-size: 17px; background: var(--tuerkis); color: #fff; }
+.knopf.zweit { background: #fff; color: var(--text); box-shadow: inset 0 0 0 2px #DDD8CC; }
+.knopf:hover { filter: brightness(1.05); }
+.knopfreihe { display: flex; gap: 12px; flex-wrap: wrap; }
+
+h2 { font-size: 28px; margin: 40px 0 14px; }
+h3 { font-size: 21px; margin: 0 0 8px; }
+.raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.karte { background: var(--karte); border-radius: var(--radius); padding: 20px; box-shadow: var(--schatten); }
+.karte.akzent { border-top: 6px solid var(--farbe, var(--tuerkis)); }
+.schritt-nr { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800;
+  background: var(--farbe, var(--tuerkis)); margin-bottom: 10px; }
+.objekt-karte { text-decoration: none; color: inherit; display: flex; gap: 12px; align-items: center; }
+.objekt-karte .emoji { font-size: 34px; }
+.hinweis { background: #FFF6E6; border-left: 5px solid var(--orange); padding: 14px 18px; border-radius: 10px; margin: 18px 0; }
+.klein { font-size: 14px; color: var(--grau); }
+footer { margin-top: 56px; padding: 26px 0 40px; border-top: 1px solid #E7E3DA; color: var(--grau); font-size: 14px; }
+
+/* Unterrichtsbeispiele */
+.stunde { background: #fff; border-radius: var(--radius); box-shadow: var(--schatten); margin: 22px 0; overflow: hidden; }
+.stunde > header { padding: 18px 22px; color: #fff; background: var(--farbe, var(--tuerkis)); }
+.stunde > header h3 { margin: 0; font-size: 23px; }
+.stunde > header .meta { opacity: .95; font-size: 15px; margin-top: 4px; }
+.stunde .inhalt { padding: 6px 22px 20px; }
+.stunde table { width: 100%; border-collapse: collapse; font-size: 16px; }
+.stunde th, .stunde td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid #EEE; }
+.stunde th { width: 120px; color: var(--grau); font-weight: 700; }
+.stunde .phase { white-space: nowrap; font-weight: 700; }
+.etiketten { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+.etikett { background: var(--hell); border-radius: 999px; padding: 3px 11px; font-size: 14px; font-weight: 600; }
+.inhaltsverzeichnis a { display: block; padding: 4px 0; }
+
+/* Druck */
+@media print {
+  .kopf, .knopfreihe, footer, .nicht-drucken { display: none !important; }
+  body { background: #fff; font-size: 12pt; }
+  .stunde, .karte { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .stunde > header { color: #000; background: #eee !important; }
+}
+
+</style>
 </head>
 <body>
 <header class="kopf"><div class="huelle">

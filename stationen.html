@@ -4,8 +4,2094 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Stationskarten – 3D-Würfel</title>
-  <link rel="stylesheet" href="css/stil.css">
-  <script src="js/objekte.js"></script>
+  <style>
+/* Gemeinsames Design – Farben wie die Würfelseiten */
+:root {
+  --orange: #F28C28; --tuerkis: #1FA2A6; --lila: #7B5CC9;
+  --gruen: #3FA34D; --blau: #2F6FD6; --pink: #E04F7A;
+  --text: #22252B; --grau: #5B6070; --hell: #F6F4EF; --karte: #FFFFFF;
+  --radius: 18px;
+  --schatten: 0 4px 18px rgba(30, 30, 50, .10);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: var(--text); background: var(--hell); line-height: 1.55; font-size: 17px;
+}
+a { color: var(--blau); }
+.huelle { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
+
+/* Kopfzeile */
+.kopf { background: #fff; border-bottom: 1px solid #E7E3DA; position: sticky; top: 0; z-index: 10; }
+.kopf .huelle { display: flex; align-items: center; gap: 18px; min-height: 62px; flex-wrap: wrap; }
+.logo { display: flex; align-items: center; gap: 10px; font-weight: 800; text-decoration: none; color: var(--text); font-size: 19px; }
+.logo-wuerfel { width: 30px; height: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; transform: rotate(-8deg); }
+.logo-wuerfel i { border-radius: 3px; }
+.logo-wuerfel i:nth-child(1) { background: var(--orange); } .logo-wuerfel i:nth-child(2) { background: var(--tuerkis); }
+.logo-wuerfel i:nth-child(3) { background: var(--lila); }   .logo-wuerfel i:nth-child(4) { background: var(--pink); }
+.navi { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+.navi a { text-decoration: none; color: var(--grau); padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 15px; }
+.navi a:hover, .navi a[aria-current] { background: var(--hell); color: var(--text); }
+
+/* Bausteine */
+.held { padding: 48px 0 24px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 32px; align-items: center; }
+.held h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 14px; }
+.held p { font-size: 19px; color: var(--grau); margin: 0 0 22px; }
+.held img { width: 100%; border-radius: var(--radius); box-shadow: var(--schatten); background: #fff; }
+@media (max-width: 760px) { .held { grid-template-columns: 1fr; } }
+
+.knopf { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px; font-weight: 700;
+  text-decoration: none; border: 0; cursor: pointer; font-size: 17px; background: var(--tuerkis); color: #fff; }
+.knopf.zweit { background: #fff; color: var(--text); box-shadow: inset 0 0 0 2px #DDD8CC; }
+.knopf:hover { filter: brightness(1.05); }
+.knopfreihe { display: flex; gap: 12px; flex-wrap: wrap; }
+
+h2 { font-size: 28px; margin: 40px 0 14px; }
+h3 { font-size: 21px; margin: 0 0 8px; }
+.raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.karte { background: var(--karte); border-radius: var(--radius); padding: 20px; box-shadow: var(--schatten); }
+.karte.akzent { border-top: 6px solid var(--farbe, var(--tuerkis)); }
+.schritt-nr { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800;
+  background: var(--farbe, var(--tuerkis)); margin-bottom: 10px; }
+.objekt-karte { text-decoration: none; color: inherit; display: flex; gap: 12px; align-items: center; }
+.objekt-karte .emoji { font-size: 34px; }
+.hinweis { background: #FFF6E6; border-left: 5px solid var(--orange); padding: 14px 18px; border-radius: 10px; margin: 18px 0; }
+.klein { font-size: 14px; color: var(--grau); }
+footer { margin-top: 56px; padding: 26px 0 40px; border-top: 1px solid #E7E3DA; color: var(--grau); font-size: 14px; }
+
+/* Unterrichtsbeispiele */
+.stunde { background: #fff; border-radius: var(--radius); box-shadow: var(--schatten); margin: 22px 0; overflow: hidden; }
+.stunde > header { padding: 18px 22px; color: #fff; background: var(--farbe, var(--tuerkis)); }
+.stunde > header h3 { margin: 0; font-size: 23px; }
+.stunde > header .meta { opacity: .95; font-size: 15px; margin-top: 4px; }
+.stunde .inhalt { padding: 6px 22px 20px; }
+.stunde table { width: 100%; border-collapse: collapse; font-size: 16px; }
+.stunde th, .stunde td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid #EEE; }
+.stunde th { width: 120px; color: var(--grau); font-weight: 700; }
+.stunde .phase { white-space: nowrap; font-weight: 700; }
+.etiketten { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+.etikett { background: var(--hell); border-radius: 999px; padding: 3px 11px; font-size: 14px; font-weight: 600; }
+.inhaltsverzeichnis a { display: block; padding: 4px 0; }
+
+/* Druck */
+@media print {
+  .kopf, .knopfreihe, footer, .nicht-drucken { display: none !important; }
+  body { background: #fff; font-size: 12pt; }
+  .stunde, .karte { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .stunde > header { color: #000; background: #eee !important; }
+}
+
+</style>
+  <script>
+/* 3D-Objekte für den Würfel.
+   Jedes Objekt besteht aus Grundformen (sphere = Kugel, box = Quader, cylinder = Zylinder, cone = Kegel).
+   p = Position [x, y, z], s = Größe [x, y, z], r = Drehung in Grad [x, y, z], c = Farbe.
+   Statt 'teile' kann ein Objekt auch 'modell': 'modelle/datei.glb' haben (z. B. Export aus Tinkercad).
+   y zeigt nach oben, z nach vorne. Der Würfel ist 1,3 Einheiten groß. */
+window.OBJEKTE = [
+ {
+  "id": "erde",
+  "name": "Erde",
+  "emoji": "🌍",
+  "skala": 1.0,
+  "drehen": 30,
+  "neigung": 23.4,
+  "teile": [
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "s": [
+     1.1,
+     1.1,
+     1.1
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#FFFFFF",
+    "tex": "texturen/erde.jpg"
+   }
+  ],
+  "fakten": [
+   "Die Erde dreht sich in 24 Stunden einmal um sich selbst. So entstehen Tag und Nacht.",
+   "Ungefähr zwei Drittel der Erdoberfläche sind von Wasser bedeckt.",
+   "In einem Jahr wandert die Erde einmal um die Sonne."
+  ],
+  "frage": "Findest du Europa? Wo ist es gerade Nacht, wenn bei uns Tag ist?"
+ },
+ {
+  "id": "mond",
+  "name": "Mond",
+  "emoji": "🌕",
+  "skala": 1.0,
+  "drehen": 50,
+  "neigung": 0,
+  "teile": [
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "s": [
+     0.9,
+     0.9,
+     0.9
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#FFFFFF",
+    "tex": "texturen/mond.jpg"
+   }
+  ],
+  "fakten": [
+   "Der Mond leuchtet nicht selbst. Er wird von der Sonne angestrahlt.",
+   "Für eine Runde um die Erde braucht der Mond ungefähr einen Monat.",
+   "Die runden Löcher heißen Krater. Sie sind durch Einschläge von Gesteinsbrocken entstanden."
+  ],
+  "frage": "Warum sieht der Mond am Himmel nicht immer gleich aus?"
+ },
+ {
+  "id": "fuchs",
+  "name": "Fuchs",
+  "emoji": "🦊",
+  "skala": 1.05,
+  "teile": [
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.02,
+     -0.05
+    ],
+    "s": [
+     0.5,
+     0.46,
+     0.85
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#E56B1F"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     -0.02,
+     0.26
+    ],
+    "s": [
+     0.36,
+     0.4,
+     0.3
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F6EEDF"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.36,
+     0.42
+    ],
+    "s": [
+     0.42,
+     0.36,
+     0.38
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#E56B1F"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.1,
+     0.3,
+     0.52
+    ],
+    "s": [
+     0.18,
+     0.16,
+     0.22
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F6EEDF"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.1,
+     0.3,
+     0.52
+    ],
+    "s": [
+     0.18,
+     0.16,
+     0.22
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F6EEDF"
+   },
+   {
+    "t": "cone",
+    "p": [
+     0,
+     0.31,
+     0.7
+    ],
+    "s": [
+     0.17,
+     0.3,
+     0.14
+    ],
+    "r": [
+     90,
+     0,
+     0
+    ],
+    "c": "#E56B1F"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.31,
+     0.85
+    ],
+    "s": [
+     0.07,
+     0.07,
+     0.07
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.1,
+     0.42,
+     0.6
+    ],
+    "s": [
+     0.06,
+     0.06,
+     0.06
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.1,
+     0.42,
+     0.6
+    ],
+    "s": [
+     0.06,
+     0.06,
+     0.06
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "cone",
+    "p": [
+     0.13,
+     0.62,
+     0.38
+    ],
+    "s": [
+     0.15,
+     0.24,
+     0.08
+    ],
+    "r": [
+     0,
+     0,
+     -12
+    ],
+    "c": "#E56B1F"
+   },
+   {
+    "t": "cone",
+    "p": [
+     -0.13,
+     0.62,
+     0.38
+    ],
+    "s": [
+     0.15,
+     0.24,
+     0.08
+    ],
+    "r": [
+     0,
+     0,
+     12
+    ],
+    "c": "#E56B1F"
+   },
+   {
+    "t": "cone",
+    "p": [
+     0.13,
+     0.6,
+     0.395
+    ],
+    "s": [
+     0.08,
+     0.14,
+     0.04
+    ],
+    "r": [
+     0,
+     0,
+     -12
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "cone",
+    "p": [
+     -0.13,
+     0.6,
+     0.395
+    ],
+    "s": [
+     0.08,
+     0.14,
+     0.04
+    ],
+    "r": [
+     0,
+     0,
+     12
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0.14,
+     -0.3,
+     0.2
+    ],
+    "s": [
+     0.1,
+     0.3,
+     0.1
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     -0.14,
+     -0.3,
+     0.2
+    ],
+    "s": [
+     0.1,
+     0.3,
+     0.1
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0.14,
+     -0.3,
+     -0.3
+    ],
+    "s": [
+     0.1,
+     0.3,
+     0.1
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     -0.14,
+     -0.3,
+     -0.3
+    ],
+    "s": [
+     0.1,
+     0.3,
+     0.1
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#2B211C"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     -0.04,
+     -0.62
+    ],
+    "s": [
+     0.26,
+     0.26,
+     0.62
+    ],
+    "r": [
+     -25,
+     0,
+     0
+    ],
+    "c": "#E56B1F"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     -0.16,
+     -0.9
+    ],
+    "s": [
+     0.18,
+     0.18,
+     0.22
+    ],
+    "r": [
+     -25,
+     0,
+     0
+    ],
+    "c": "#F6EEDF"
+   }
+  ],
+  "fakten": [
+   "Der Rotfuchs lebt im Wald, auf Feldern und sogar in Städten.",
+   "Er frisst Mäuse, Insekten, Regenwürmer und auch Beeren.",
+   "Seine Wohnung heißt Bau, sein buschiger Schwanz heißt Lunte."
+  ],
+  "frage": "Wozu braucht der Fuchs seine großen Ohren?"
+ },
+ {
+  "id": "pinguin",
+  "name": "Pinguin",
+  "emoji": "🐧",
+  "skala": 1.05,
+  "teile": [
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     -0.05,
+     0
+    ],
+    "s": [
+     0.6,
+     0.86,
+     0.56
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     -0.1,
+     0.1
+    ],
+    "s": [
+     0.48,
+     0.72,
+     0.42
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.46,
+     0.02
+    ],
+    "s": [
+     0.42,
+     0.4,
+     0.4
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.085,
+     0.47,
+     0.13
+    ],
+    "s": [
+     0.15,
+     0.18,
+     0.2
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.085,
+     0.47,
+     0.13
+    ],
+    "s": [
+     0.15,
+     0.18,
+     0.2
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.085,
+     0.49,
+     0.22
+    ],
+    "s": [
+     0.055,
+     0.055,
+     0.055
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.085,
+     0.49,
+     0.22
+    ],
+    "s": [
+     0.055,
+     0.055,
+     0.055
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "cone",
+    "p": [
+     0,
+     0.42,
+     0.28
+    ],
+    "s": [
+     0.1,
+     0.17,
+     0.08
+    ],
+    "r": [
+     90,
+     0,
+     0
+    ],
+    "c": "#F5A623"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.31,
+     -0.02,
+     0
+    ],
+    "s": [
+     0.12,
+     0.52,
+     0.26
+    ],
+    "r": [
+     0,
+     0,
+     14
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.31,
+     -0.02,
+     0
+    ],
+    "s": [
+     0.12,
+     0.52,
+     0.26
+    ],
+    "r": [
+     0,
+     0,
+     -14
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.12,
+     -0.49,
+     0.12
+    ],
+    "s": [
+     0.18,
+     0.06,
+     0.26
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F5A623"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.12,
+     -0.49,
+     0.12
+    ],
+    "s": [
+     0.18,
+     0.06,
+     0.26
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F5A623"
+   }
+  ],
+  "fakten": [
+   "Pinguine können nicht fliegen, aber sehr gut schwimmen und tauchen.",
+   "Ihre Flügel sind wie Flossen geformt.",
+   "Fast alle Pinguine leben auf der Südhalbkugel der Erde."
+  ],
+  "frage": "Warum ist der Bauch hell und der Rücken dunkel? Denk an Feinde im Wasser!"
+ },
+ {
+  "id": "marienkaefer",
+  "name": "Marienkäfer",
+  "emoji": "🐞",
+  "skala": 1.15,
+  "teile": [
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "s": [
+     0.8,
+     0.45,
+     0.95
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#D7261E"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0,
+     -0.03,
+     0
+    ],
+    "s": [
+     0.79,
+     0.06,
+     0.93
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.0,
+     0
+    ],
+    "s": [
+     0.03,
+     0.458,
+     0.965
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.205,
+     0.4
+    ],
+    "s": [
+     0.13,
+     0.05,
+     0.08
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.0,
+     0.47
+    ],
+    "s": [
+     0.38,
+     0.26,
+     0.26
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.1,
+     0.05,
+     0.57
+    ],
+    "s": [
+     0.07,
+     0.07,
+     0.07
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.1,
+     0.05,
+     0.57
+    ],
+    "s": [
+     0.07,
+     0.07,
+     0.07
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0.07,
+     0.16,
+     0.6
+    ],
+    "s": [
+     0.018,
+     0.22,
+     0.018
+    ],
+    "r": [
+     35,
+     0,
+     -25
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     -0.07,
+     0.16,
+     0.6
+    ],
+    "s": [
+     0.018,
+     0.22,
+     0.018
+    ],
+    "r": [
+     35,
+     0,
+     25
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.12,
+     0.25,
+     0.66
+    ],
+    "s": [
+     0.05,
+     0.05,
+     0.05
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.12,
+     0.25,
+     0.66
+    ],
+    "s": [
+     0.05,
+     0.05,
+     0.05
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0.4,
+     -0.12,
+     0.18
+    ],
+    "s": [
+     0.03,
+     0.26,
+     0.03
+    ],
+    "r": [
+     0,
+     0,
+     65
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     -0.4,
+     -0.12,
+     0.18
+    ],
+    "s": [
+     0.03,
+     0.26,
+     0.03
+    ],
+    "r": [
+     0,
+     0,
+     -65
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0.42,
+     -0.12,
+     0.0
+    ],
+    "s": [
+     0.03,
+     0.26,
+     0.03
+    ],
+    "r": [
+     0,
+     0,
+     65
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     -0.42,
+     -0.12,
+     0.0
+    ],
+    "s": [
+     0.03,
+     0.26,
+     0.03
+    ],
+    "r": [
+     0,
+     0,
+     -65
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0.4,
+     -0.12,
+     -0.18
+    ],
+    "s": [
+     0.03,
+     0.26,
+     0.03
+    ],
+    "r": [
+     0,
+     0,
+     65
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     -0.4,
+     -0.12,
+     -0.18
+    ],
+    "s": [
+     0.03,
+     0.26,
+     0.03
+    ],
+    "r": [
+     0,
+     0,
+     -65
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.17,
+     0.165,
+     0.2
+    ],
+    "s": [
+     0.13,
+     0.06,
+     0.13
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.17,
+     0.165,
+     0.2
+    ],
+    "s": [
+     0.13,
+     0.06,
+     0.13
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.24,
+     0.161,
+     -0.08
+    ],
+    "s": [
+     0.13,
+     0.06,
+     0.13
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.24,
+     0.161,
+     -0.08
+    ],
+    "s": [
+     0.13,
+     0.06,
+     0.13
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.13,
+     0.134,
+     -0.32
+    ],
+    "s": [
+     0.13,
+     0.06,
+     0.13
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.13,
+     0.134,
+     -0.32
+    ],
+    "s": [
+     0.13,
+     0.06,
+     0.13
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   }
+  ],
+  "fakten": [
+   "Der Marienkäfer ist ein Insekt. Insekten haben sechs Beine.",
+   "Er frisst Blattläuse und hilft so im Garten.",
+   "Die Punkte verraten nicht sein Alter. Dieser hier ist ein Siebenpunkt-Marienkäfer."
+  ],
+  "frage": "Zähle die Beine und die Punkte. Stimmt es?"
+ },
+ {
+  "id": "frosch",
+  "name": "Frosch",
+  "emoji": "🐸",
+  "skala": 1.1,
+  "teile": [
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     -0.06,
+     -0.08
+    ],
+    "s": [
+     0.74,
+     0.44,
+     0.72
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     -0.13,
+     0.08
+    ],
+    "s": [
+     0.56,
+     0.3,
+     0.52
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#B7DD79"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.08,
+     0.28
+    ],
+    "s": [
+     0.66,
+     0.32,
+     0.46
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.18,
+     0.27,
+     0.3
+    ],
+    "s": [
+     0.19,
+     0.19,
+     0.19
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.18,
+     0.27,
+     0.3
+    ],
+    "s": [
+     0.19,
+     0.19,
+     0.19
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.18,
+     0.3,
+     0.36
+    ],
+    "s": [
+     0.15,
+     0.15,
+     0.15
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.18,
+     0.3,
+     0.36
+    ],
+    "s": [
+     0.15,
+     0.15,
+     0.15
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.19,
+     0.31,
+     0.43
+    ],
+    "s": [
+     0.065,
+     0.065,
+     0.065
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.19,
+     0.31,
+     0.43
+    ],
+    "s": [
+     0.065,
+     0.065,
+     0.065
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "box",
+    "p": [
+     0,
+     0.05,
+     0.505
+    ],
+    "s": [
+     0.3,
+     0.018,
+     0.02
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#2E6B2E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.36,
+     -0.2,
+     -0.22
+    ],
+    "s": [
+     0.26,
+     0.22,
+     0.46
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.36,
+     -0.2,
+     -0.22
+    ],
+    "s": [
+     0.26,
+     0.22,
+     0.46
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.4,
+     -0.37,
+     0.03
+    ],
+    "s": [
+     0.22,
+     0.05,
+     0.32
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.4,
+     -0.37,
+     0.03
+    ],
+    "s": [
+     0.22,
+     0.05,
+     0.32
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0.22,
+     -0.28,
+     0.32
+    ],
+    "s": [
+     0.07,
+     0.2,
+     0.07
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     -0.22,
+     -0.28,
+     0.32
+    ],
+    "s": [
+     0.07,
+     0.2,
+     0.07
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.24,
+     -0.38,
+     0.38
+    ],
+    "s": [
+     0.15,
+     0.04,
+     0.15
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.24,
+     -0.38,
+     0.38
+    ],
+    "s": [
+     0.15,
+     0.04,
+     0.15
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3E9B3E"
+   }
+  ],
+  "fakten": [
+   "Frösche sind Amphibien: Sie leben an Land und im Wasser.",
+   "Aus dem Laich schlüpfen Kaulquappen. Daraus werden Frösche.",
+   "Mit ihrer klebrigen Zunge fangen sie Insekten."
+  ],
+  "frage": "Warum hat der Frosch so lange Hinterbeine?"
+ },
+ {
+  "id": "fisch",
+  "name": "Clownfisch",
+  "emoji": "🐠",
+  "skala": 1.0,
+  "teile": [
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0,
+     0
+    ],
+    "s": [
+     0.34,
+     0.5,
+     1.0
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F57C00"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0,
+     0,
+     0.27
+    ],
+    "s": [
+     0.315,
+     0.06,
+     0.463
+    ],
+    "r": [
+     90,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0,
+     0,
+     -0.12
+    ],
+    "s": [
+     0.363,
+     0.06,
+     0.534
+    ],
+    "r": [
+     90,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0,
+     0,
+     -0.38
+    ],
+    "s": [
+     0.243,
+     0.05,
+     0.357
+    ],
+    "r": [
+     90,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "cone",
+    "p": [
+     0,
+     0,
+     -0.6
+    ],
+    "s": [
+     0.06,
+     0.3,
+     0.46
+    ],
+    "r": [
+     90,
+     0,
+     0
+    ],
+    "c": "#F57C00"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.24,
+     -0.02
+    ],
+    "s": [
+     0.04,
+     0.2,
+     0.5
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F57C00"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.17,
+     -0.06,
+     0.12
+    ],
+    "s": [
+     0.03,
+     0.12,
+     0.2
+    ],
+    "r": [
+     0,
+     25,
+     0
+    ],
+    "c": "#F57C00"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.17,
+     -0.06,
+     0.12
+    ],
+    "s": [
+     0.03,
+     0.12,
+     0.2
+    ],
+    "r": [
+     0,
+     -25,
+     0
+    ],
+    "c": "#F57C00"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.115,
+     0.07,
+     0.36
+    ],
+    "s": [
+     0.1,
+     0.1,
+     0.1
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.115,
+     0.07,
+     0.36
+    ],
+    "s": [
+     0.1,
+     0.1,
+     0.1
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#F7F7F2"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.15,
+     0.07,
+     0.39
+    ],
+    "s": [
+     0.05,
+     0.05,
+     0.05
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.15,
+     0.07,
+     0.39
+    ],
+    "s": [
+     0.05,
+     0.05,
+     0.05
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#24262B"
+   }
+  ],
+  "fakten": [
+   "Clownfische leben in warmen Meeren an Korallenriffen.",
+   "Sie wohnen in Seeanemonen. Eine Schleimschicht schützt sie vor deren Nesseln.",
+   "Fische atmen mit Kiemen unter Wasser."
+  ],
+  "frage": "Wo auf der Erde gibt es Korallenriffe? Suche mit dem Erd-Würfel!"
+ },
+ {
+  "id": "baum",
+  "name": "Apfelbaum",
+  "emoji": "🌳",
+  "skala": 1.0,
+  "teile": [
+   {
+    "t": "cylinder",
+    "p": [
+     0,
+     -0.58,
+     0
+    ],
+    "s": [
+     0.85,
+     0.05,
+     0.85
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#8CC152"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0,
+     -0.28,
+     0
+    ],
+    "s": [
+     0.17,
+     0.6,
+     0.17
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#7A4E2D"
+   },
+   {
+    "t": "cylinder",
+    "p": [
+     0.12,
+     -0.02,
+     0
+    ],
+    "s": [
+     0.06,
+     0.3,
+     0.06
+    ],
+    "r": [
+     0,
+     0,
+     -40
+    ],
+    "c": "#7A4E2D"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0,
+     0.22,
+     0
+    ],
+    "s": [
+     0.72,
+     0.72,
+     0.72
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3F8F3A"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.25,
+     0.1,
+     0.12
+    ],
+    "s": [
+     0.46,
+     0.46,
+     0.46
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#56A845"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.24,
+     0.12,
+     -0.06
+    ],
+    "s": [
+     0.46,
+     0.46,
+     0.46
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#56A845"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.02,
+     0.45,
+     -0.06
+    ],
+    "s": [
+     0.46,
+     0.46,
+     0.46
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#56A845"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.08,
+     0.1,
+     0.27
+    ],
+    "s": [
+     0.4,
+     0.4,
+     0.4
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#3F8F3A"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.2,
+     0.0,
+     0.33
+    ],
+    "s": [
+     0.09,
+     0.09,
+     0.09
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#D9302B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.3,
+     0.2,
+     0.2
+    ],
+    "s": [
+     0.09,
+     0.09,
+     0.09
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#D9302B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.05,
+     0.38,
+     0.3
+    ],
+    "s": [
+     0.09,
+     0.09,
+     0.09
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#D9302B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     0.38,
+     0.28,
+     -0.05
+    ],
+    "s": [
+     0.09,
+     0.09,
+     0.09
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#D9302B"
+   },
+   {
+    "t": "sphere",
+    "p": [
+     -0.15,
+     -0.05,
+     0.3
+    ],
+    "s": [
+     0.09,
+     0.09,
+     0.09
+    ],
+    "r": [
+     0,
+     0,
+     0
+    ],
+    "c": "#D9302B"
+   }
+  ],
+  "fakten": [
+   "Ein Baum besteht aus Wurzeln, Stamm und Krone.",
+   "Die Blätter nutzen das Sonnenlicht und geben Sauerstoff ab.",
+   "An den Jahresringen im Stamm kann man das Alter eines Baumes ablesen."
+  ],
+  "frage": "Was verändert sich am Apfelbaum im Frühling, Sommer, Herbst und Winter?"
+ }
+];
+
+</script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
   <style>
     .karten { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin-top: 18px; }
