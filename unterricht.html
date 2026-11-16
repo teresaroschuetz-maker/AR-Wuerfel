@@ -1,256 +1,94 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Unterrichtsideen – 3D-Würfel</title>
-  <style>
-/* Gemeinsames Design – Farben wie die Würfelseiten */
-:root {
-  --orange: #F28C28; --tuerkis: #1FA2A6; --lila: #7B5CC9;
-  --gruen: #3FA34D; --blau: #2F6FD6; --pink: #E04F7A;
-  --text: #22252B; --grau: #5B6070; --hell: #F6F4EF; --karte: #FFFFFF;
-  --radius: 18px;
-  --schatten: 0 4px 18px rgba(30, 30, 50, .10);
-}
-* { box-sizing: border-box; }
-html, body { margin: 0; }
-body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  color: var(--text); background: var(--hell); line-height: 1.55; font-size: 17px;
-}
-a { color: var(--blau); }
-.huelle { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
-
-/* Kopfzeile */
-.kopf { background: #fff; border-bottom: 1px solid #E7E3DA; position: sticky; top: 0; z-index: 10; }
-.kopf .huelle { display: flex; align-items: center; gap: 18px; min-height: 62px; flex-wrap: wrap; }
-.logo { display: flex; align-items: center; gap: 10px; font-weight: 800; text-decoration: none; color: var(--text); font-size: 19px; }
-.logo-wuerfel { width: 30px; height: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; transform: rotate(-8deg); }
-.logo-wuerfel i { border-radius: 3px; }
-.logo-wuerfel i:nth-child(1) { background: var(--orange); } .logo-wuerfel i:nth-child(2) { background: var(--tuerkis); }
-.logo-wuerfel i:nth-child(3) { background: var(--lila); }   .logo-wuerfel i:nth-child(4) { background: var(--pink); }
-.navi { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
-.navi a { text-decoration: none; color: var(--grau); padding: 6px 12px; border-radius: 999px; font-weight: 600; font-size: 15px; }
-.navi a:hover, .navi a[aria-current] { background: var(--hell); color: var(--text); }
-
-/* Bausteine */
-.held { padding: 48px 0 24px; display: grid; grid-template-columns: 1.2fr .8fr; gap: 32px; align-items: center; }
-.held h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; margin: 0 0 14px; }
-.held p { font-size: 19px; color: var(--grau); margin: 0 0 22px; }
-.held img { width: 100%; border-radius: var(--radius); box-shadow: var(--schatten); background: #fff; }
-@media (max-width: 760px) { .held { grid-template-columns: 1fr; } }
-
-.knopf { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 999px; font-weight: 700;
-  text-decoration: none; border: 0; cursor: pointer; font-size: 17px; background: var(--tuerkis); color: #fff; }
-.knopf.zweit { background: #fff; color: var(--text); box-shadow: inset 0 0 0 2px #DDD8CC; }
-.knopf:hover { filter: brightness(1.05); }
-.knopfreihe { display: flex; gap: 12px; flex-wrap: wrap; }
-
-h2 { font-size: 28px; margin: 40px 0 14px; }
-h3 { font-size: 21px; margin: 0 0 8px; }
-.raster { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
-.karte { background: var(--karte); border-radius: var(--radius); padding: 20px; box-shadow: var(--schatten); }
-.karte.akzent { border-top: 6px solid var(--farbe, var(--tuerkis)); }
-.schritt-nr { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 800;
-  background: var(--farbe, var(--tuerkis)); margin-bottom: 10px; }
-.objekt-karte { text-decoration: none; color: inherit; display: flex; gap: 12px; align-items: center; }
-.objekt-karte .emoji { font-size: 34px; }
-.hinweis { background: #FFF6E6; border-left: 5px solid var(--orange); padding: 14px 18px; border-radius: 10px; margin: 18px 0; }
-.klein { font-size: 14px; color: var(--grau); }
-footer { margin-top: 56px; padding: 26px 0 40px; border-top: 1px solid #E7E3DA; color: var(--grau); font-size: 14px; }
-
-/* Unterrichtsbeispiele */
-.stunde { background: #fff; border-radius: var(--radius); box-shadow: var(--schatten); margin: 22px 0; overflow: hidden; }
-.stunde > header { padding: 18px 22px; color: #fff; background: var(--farbe, var(--tuerkis)); }
-.stunde > header h3 { margin: 0; font-size: 23px; }
-.stunde > header .meta { opacity: .95; font-size: 15px; margin-top: 4px; }
-.stunde .inhalt { padding: 6px 22px 20px; }
-.stunde table { width: 100%; border-collapse: collapse; font-size: 16px; }
-.stunde th, .stunde td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid #EEE; }
-.stunde th { width: 120px; color: var(--grau); font-weight: 700; }
-.stunde .phase { white-space: nowrap; font-weight: 700; }
-.etiketten { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
-.etikett { background: var(--hell); border-radius: 999px; padding: 3px 11px; font-size: 14px; font-weight: 600; }
-.inhaltsverzeichnis a { display: block; padding: 4px 0; }
-
-/* Druck */
-@media print {
-  .kopf, .knopfreihe, footer, .nicht-drucken { display: none !important; }
-  body { background: #fff; font-size: 12pt; }
-  .stunde, .karte { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
-  .stunde > header { color: #000; background: #eee !important; }
-}
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="referrer" content="no-referrer">
+<title>Geschützter Bereich</title>
+<style>
+  html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:#F6F4EF;color:#22252B}
+  .huelle{min-height:100%;display:grid;place-items:center;padding:20px;box-sizing:border-box}
+  .box{background:#fff;border-radius:20px;box-shadow:0 4px 18px rgba(30,30,50,.12);padding:28px;max-width:380px;width:100%;box-sizing:border-box}
+  .streifen{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:18px}
+  .streifen i{flex:1}
+  h1{font-size:22px;margin:0 0 6px} p{margin:0 0 16px;color:#5B6070;font-size:15px}
+  input[type=password]{width:100%;box-sizing:border-box;font-size:18px;padding:12px 14px;border:2px solid #DDD8CC;border-radius:12px;margin-bottom:12px}
+  label{display:flex;gap:8px;align-items:center;font-size:15px;margin-bottom:16px;color:#5B6070}
+  button{width:100%;border:0;border-radius:999px;background:#1FA2A6;color:#fff;font-size:17px;font-weight:700;padding:13px;cursor:pointer}
+  .fehler{color:#C0392B;font-weight:600;font-size:15px;min-height:20px;margin-top:10px}
+  [hidden]{display:none!important}
 </style>
 </head>
 <body>
-<header class="kopf"><div class="huelle">
-  <a class="logo" href="index.html"><span class="logo-wuerfel"><i></i><i></i><i></i><i></i></span>3D-Würfel</a>
-  <nav class="navi">
-    <a href="index.html">Start</a>
-    <a href="wuerfel.html">Würfel basteln</a>
-    <a href="unterricht.html" aria-current="page">Unterrichtsideen</a>
-    <a href="stationen.html">Stationskarten</a>
-    <a href="anleitung.html">Für Lehrende</a>
-  </nav>
-</div></header>
+<div class="huelle"><form class="box" id="form" hidden>
+  <div class="streifen"><i style="background:#F28C28"></i><i style="background:#1FA2A6"></i><i style="background:#7B5CC9"></i><i style="background:#3FA34D"></i><i style="background:#2F6FD6"></i><i style="background:#E04F7A"></i></div>
+  <h1>Geschützter Bereich</h1>
+  <p>Bitte das Passwort eingeben.</p>
+  <input type="password" id="pw" autocomplete="current-password" aria-label="Passwort" autofocus>
+  <label><input type="checkbox" id="merken" checked> Auf diesem Gerät merken</label>
+  <button type="submit" id="los">Öffnen</button>
+  <div class="fehler" id="fehler"></div>
+</form></div>
+<script>
+(function () {
+  var D = {"salz": "57H3oCkTM962bi7qKobjhg==", "iter": 600000, "iv": "k1M4JlmgyqY0uCYt", "ct": "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"};
+  var SPEICHER = "arwuerfel-schluessel";
+  function bytes(b64) { var s = atob(b64), a = new Uint8Array(s.length); for (var i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return a; }
+  function hex(a) { return Array.prototype.map.call(a, function (x) { return ("0" + x.toString(16)).slice(-2); }).join(""); }
+  function vonHex(h) { var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
+  function merken(k) { try { localStorage.setItem(SPEICHER, k); } catch (e) {} }
+  function vergessen() { try { localStorage.removeItem(SPEICHER); } catch (e) {} }
 
-<main class="huelle">
-  <h1 style="margin-top:36px">Unterrichtsbeispiele für die Volksschule</h1>
-  <p>Sechs ausgearbeitete Stunden und einige Kurzideen. Der Würfel ergänzt dabei echte Erfahrungen, er ersetzt sie nicht. Wo es geht, steht neben dem 3D-Modell ein echtes Objekt, ein Foto, ein Buch oder ein Gang nach draußen.</p>
+  function entschluesseln(rohSchluessel) {
+    return crypto.subtle.importKey("raw", rohSchluessel, "AES-GCM", false, ["decrypt"]).then(function (k) {
+      return crypto.subtle.decrypt({ name: "AES-GCM", iv: bytes(D.iv) }, k, bytes(D.ct));
+    }).then(function (b) { return new TextDecoder().decode(b); });
+  }
+  function ausPasswort(pw) {
+    return crypto.subtle.importKey("raw", new TextEncoder().encode(pw), "PBKDF2", false, ["deriveBits"]).then(function (basis) {
+      return crypto.subtle.deriveBits({ name: "PBKDF2", salt: bytes(D.salz), iterations: D.iter, hash: "SHA-256" }, basis, 256);
+    }).then(function (b) { return new Uint8Array(b); });
+  }
+  function zeige(html) {
+    // erst wenn die Anmeldeseite fertig geladen ist, sonst bleiben ihre Reste stehen
+    function los() { document.open(); document.write(html); document.close(); }
+    if (document.readyState === "complete") los(); else window.addEventListener("load", los, { once: true });
+  }
+  function formular() { document.getElementById("form").hidden = false; document.getElementById("pw").focus(); }
 
-  <div class="karte inhaltsverzeichnis nicht-drucken">
-    <b>Übersicht</b>
-    <a href="#s1">1 · Wer bin ich? Tiere genau beschreiben (1./2. Schulstufe)</a>
-    <a href="#s2">2 · Sechs Beine, sieben Punkte: der Marienkäfer (2./3.)</a>
-    <a href="#s3">3 · Wer wohnt wo? Tiere und ihre Lebensräume (3./4.)</a>
-    <a href="#s4">4 · Tag und Nacht: Die Erde dreht sich (3./4.)</a>
-    <a href="#s5">5 · Passt das? Würfelnetze bauen und testen (Mathematik, 3./4.)</a>
-    <a href="#s6">6 · Wie sieht das Tablet den Würfel? (Medienbildung, 3./4.)</a>
-    <a href="#kurz">Kurzideen</a> · <a href="#planen">Eigene Stunde planen</a>
-  </div>
+  if (!window.crypto || !crypto.subtle) {
+    document.body.innerHTML = '<p style="padding:24px">Diese Seite braucht eine sichere Verbindung (https). Bitte über die Internetadresse öffnen.</p>';
+    return;
+  }
+  var params = new URLSearchParams(location.search);
+  if (params.has("abmelden")) { vergessen(); history.replaceState(null, "", location.pathname); }
 
-  <h2>Gut zu wissen für alle Stunden</h2>
-  <div class="raster">
-    <div class="karte"><h3>Organisation</h3><p>Ein Tablet und ein Würfel für 2–3 Kinder. Rollen wechseln: <b>Würfel-Halter</b>, <b>Kamera-Kind</b>, <b>Forscher</b> (liest den Steckbrief, notiert).</p></div>
-    <div class="karte"><h3>Direkt zum Objekt</h3><p>Jedes Objekt hat eine eigene Adresse, z. B. <code>ar.html?objekt=fuchs</code>. Auf der Seite <a href="stationen.html">Stationskarten</a> gibt es dafür fertige QR-Codes.</p></div>
-    <div class="karte"><h3>Vorher testen</h3><p>Licht im Klassenraum prüfen, Tablets laden und die Seite einmal öffnen. Den Zugriff auf die Kamera erlauben.</p></div>
-    <div class="karte"><h3>Ohne Kamera</h3><p>Die <a href="vorschau.html">Vorschau</a> zeigt alle Objekte am Beamer oder Whiteboard. Gut für den Einstieg mit der ganzen Klasse.</p></div>
-  </div>
+  // Schlüssel aus QR-Code (#k=...) oder vom Gerät
+  var ausAdresse = (location.hash.match(/[#&]k=([0-9a-f]{64})/) || [])[1];
+  if (ausAdresse) history.replaceState(null, "", location.pathname + location.search);
+  var kandidat = ausAdresse;
+  if (!kandidat) { try { kandidat = localStorage.getItem(SPEICHER); } catch (e) {} }
 
-  <!-- 1 -->
-  <article class="stunde" id="s1" style="--farbe:var(--orange)">
-    <header><h3>1 · Wer bin ich? Tiere genau beschreiben</h3>
-      <div class="meta">1./2. Schulstufe · Sachunterricht und Deutsch (Sprechen) · 1 Einheit (50 min) · Fuchs, Pinguin, Frosch, Marienkäfer</div></header>
-    <div class="inhalt">
-      <p><b>Ziele:</b> Die Kinder beobachten ein Tier genau, benennen Körperteile, Farben und Formen und beschreiben es so, dass andere es erraten können.</p>
-      <p><b>Material:</b> Tablets, Würfel, Wortkarten (Kopf, Ohren, Schnabel, Flossen, Fell, Federn, Beine …), Steckbrief-Blatt</p>
-      <table>
-        <tr><th class="phase">Einstieg<br><span class="klein">10 min</span></th><td>Am Beamer erscheint in der Vorschau nur ein Ausschnitt eines Tieres (stark hineingezoomt). Die Kinder sagen, was sie sehen, und raten. Danach den Würfel zeigen: „Heute bringen wir Tiere in unsere Hand!“</td></tr>
-        <tr><th class="phase">Erarbeitung<br><span class="klein">25 min</span></th><td><b>Ratespiel zu zweit:</b> Kind A wählt heimlich ein Tier und beschreibt es, ohne den Namen zu sagen („Es hat spitze Ohren und einen buschigen Schwanz …“). Kind B rät. Dann wird getauscht. Die Wortkarten liegen als Hilfe auf dem Tisch. Danach wählt jede Gruppe ein Tier und dreht den Würfel: Was sieht man von hinten, von oben, von unten?</td></tr>
-        <tr><th class="phase">Sicherung<br><span class="klein">15 min</span></th><td>Steckbrief-Blatt ausfüllen: Name, Zeichnung, drei Merkmale, „Das hat mich überrascht: …“. Zwei Gruppen stellen ihr Tier vor.</td></tr>
-      </table>
-      <div class="etiketten"><span class="etikett">Differenzierung</span></div>
-      <p>Leichter: Wortkarten mit Bildern, nur zeigen statt beschreiben. Schwieriger: zwei Tiere vergleichen („Der Pinguin hat …, der Fuchs aber …“).</p>
-    </div>
-  </article>
+  if (kandidat && /^[0-9a-f]{64}$/.test(kandidat)) {
+    entschluesseln(vonHex(kandidat)).then(function (html) {
+      merken(kandidat); zeige(html);
+    }).catch(function () { vergessen(); formular(); });
+  } else formular();
 
-  <!-- 2 -->
-  <article class="stunde" id="s2" style="--farbe:var(--pink)">
-    <header><h3>2 · Sechs Beine, sieben Punkte: der Marienkäfer</h3>
-      <div class="meta">2./3. Schulstufe · Sachunterricht · 1–2 Einheiten · Marienkäfer, Frosch</div></header>
-    <div class="inhalt">
-      <p><b>Ziele:</b> Die Kinder erkennen Merkmale von Insekten (sechs Beine, Fühler, Flügel). Sie überprüfen eine Aussage durch genaues Beobachten.</p>
-      <p><b>Material:</b> Tablets, Würfel, Becherlupen, wenn möglich echte Käfer oder Fotos, Insekten-Checkliste</p>
-      <table>
-        <tr><th class="phase">Einstieg<br><span class="klein">5 min</span></th><td>Behauptung an der Tafel: „Man kann an den Punkten erkennen, wie alt ein Marienkäfer ist.“ Stimmt das? Abstimmung mit Daumen.</td></tr>
-        <tr><th class="phase">Erarbeitung<br><span class="klein">25 min</span></th><td>Mit dem Würfel den Marienkäfer von allen Seiten untersuchen: Beine zählen (von unten!), Punkte zählen, Fühler finden. Die Checkliste „Ist das ein Insekt?“ ausfüllen. Danach zum Vergleich den Frosch ansehen: Wie viele Beine? Ist er ein Insekt?</td></tr>
-        <tr><th class="phase">Sicherung<br><span class="klein">10 min</span></th><td>Steckbrief am Tablet lesen und die Behauptung vom Anfang klären: Die Punktzahl hängt von der Art ab, nicht vom Alter. Merksatz: „Insekten haben sechs Beine.“</td></tr>
-        <tr><th class="phase">Weiterführung<br><span class="klein">2. Einheit</span></th><td>Hinaus in den Schulgarten: echte Insekten mit Becherlupen suchen, Beine zählen und vergleichen. Danach kurz besprechen: Was zeigt das 3D-Modell gut, was nur das echte Tier (Bewegung, Größe, Fliegen)?</td></tr>
-      </table>
-      <div class="etiketten"><span class="etikett">Differenzierung</span></div>
-      <p>Schwieriger: Eine Spinne skizzieren und vergleichen (acht Beine). Ist sie ein Insekt?</p>
-    </div>
-  </article>
-
-  <!-- 3 -->
-  <article class="stunde" id="s3" style="--farbe:var(--gruen)">
-    <header><h3>3 · Wer wohnt wo? Tiere und ihre Lebensräume</h3>
-      <div class="meta">3./4. Schulstufe · Sachunterricht · 1–2 Einheiten · Pinguin, Clownfisch, Fuchs, Frosch, Erde</div></header>
-    <div class="inhalt">
-      <p><b>Ziele:</b> Die Kinder ordnen Tiere ihren Lebensräumen zu. Sie begründen, wie Körpermerkmale zum Lebensraum passen, und finden Lebensräume auf der Erdkugel.</p>
-      <p><b>Material:</b> Tablets, Würfel, Stationskarten mit QR-Codes, Weltkarte (Poster), Klebepunkte, Lebensraum-Kärtchen (Eis und Meer, Korallenriff, Wald und Feld, Teich)</p>
-      <table>
-        <tr><th class="phase">Einstieg<br><span class="klein">5 min</span></th><td>Bild eines leeren Lebensraums zeigen (z. B. Eisscholle): „Wer könnte hier wohnen?“</td></tr>
-        <tr><th class="phase">Stationen<br><span class="klein">25 min</span></th><td>Vier Stationen (QR-Code öffnet das Tier direkt). Pro Station: das Tier ansehen, die Forscherfrage beantworten, den Lebensraum zuordnen und begründen: „Der Pinguin hat Flossen, weil …“</td></tr>
-        <tr><th class="phase">Erde<br><span class="klein">10 min</span></th><td>Mit der Erde am Würfel suchen: Wo ist die Antarktis? Wo gibt es warme Meere mit Korallenriffen (z. B. vor Australien)? Wo liegt Österreich, wo leben Fuchs und Frosch? Danach Klebepunkte auf die Weltkarte setzen.</td></tr>
-        <tr><th class="phase">Sicherung<br><span class="klein">10 min</span></th><td>Galerie: Jede Gruppe erklärt ein Tier. Gemeinsame Frage: Was passiert, wenn sich ein Lebensraum verändert (z. B. das Eis schmilzt)?</td></tr>
-      </table>
-      <div class="etiketten"><span class="etikett">Differenzierung</span></div>
-      <p>Leichter: Lebensraum-Kärtchen mit Bildern. Schwieriger: ein eigenes Tier recherchieren und einen Steckbrief im gleichen Aufbau schreiben (drei Fakten und eine Forscherfrage).</p>
-    </div>
-  </article>
-
-  <!-- 4 -->
-  <article class="stunde" id="s4" style="--farbe:var(--blau)">
-    <header><h3>4 · Tag und Nacht: Die Erde dreht sich</h3>
-      <div class="meta">3./4. Schulstufe · Sachunterricht · 2 Einheiten · Erde, Mond</div></header>
-    <div class="inhalt">
-      <p><b>Ziele:</b> Die Kinder erklären, dass Tag und Nacht durch die Drehung der Erde entstehen. Sie orientieren sich auf der Erdkugel (Kontinente, Ozeane, Europa, Österreich).</p>
-      <p><b>Material:</b> Tablets, Würfel, Globus, starke Taschenlampe oder Lampe ohne Schirm, abgedunkelter Raum, Weltkarte</p>
-      <table>
-        <tr><th class="phase">Einstieg<br><span class="klein">10 min</span></th><td>Frage: „Wenn bei uns Mittag ist, ist es dann überall auf der Welt Mittag?“ Vermutungen sammeln.</td></tr>
-        <tr><th class="phase">Orientierung<br><span class="klein">15 min</span></th><td>Mit der Erde am Würfel: Kontinente und Ozeane finden, Europa suchen. Beobachten: Die Erde dreht sich und ihre Achse ist schräg. Wie lange dauert eine Umdrehung? (Steckbrief)</td></tr>
-        <tr><th class="phase">Experiment<br><span class="klein">20 min</span></th><td>Globus und Lampe (Sonne) im abgedunkelten Raum. Österreich mit einem Klebepunkt markieren, den Globus langsam drehen: Wann ist bei uns Tag, wann Nacht? Hinweis: Die 3D-Erde am Tablet hat keine echte Sonne. Für Licht und Schatten braucht es das echte Experiment.</td></tr>
-        <tr><th class="phase">Sicherung<br><span class="klein">15 min</span></th><td>Merksatz und Zeichnung: Erde, Sonne, Tag- und Nachtseite. Zusatz: Mit dem Mond-Würfel den Steckbrief lesen. Leuchtet der Mond selbst?</td></tr>
-        <tr><th class="phase">2. Einheit<br><span class="klein">50 min</span></th><td>Mond beobachten: Mondkalender für zwei Wochen führen (Hausübung) und Krater am Modell suchen. Die Forscherfrage zu den Mondphasen mit Lampe und Ball nachspielen.</td></tr>
-      </table>
-      <div class="etiketten"><span class="etikett">Differenzierung</span></div>
-      <p>Schwieriger: Eine Uhrzeit-Weltkarte anlegen. Wie spät ist es jetzt in Australien?</p>
-    </div>
-  </article>
-
-  <!-- 5 -->
-  <article class="stunde" id="s5" style="--farbe:var(--lila)">
-    <header><h3>5 · Passt das? Würfelnetze bauen und testen</h3>
-      <div class="meta">3./4. Schulstufe · Mathematik (Geometrie) · 2 Einheiten · alle Objekte</div></header>
-    <div class="inhalt">
-      <p><b>Ziele:</b> Die Kinder erkennen, welche Netze sich zu einem Würfel falten lassen. Sie stellen sich vor, wie die Flächen beim Falten zueinander liegen, und überprüfen ihre Vermutung handelnd.</p>
-      <p><b>Material:</b> Bastelbogen, Kästchenpapier, Steckwürfel oder Polydron, Scheren, Kleber, Tablets</p>
-      <table>
-        <tr><th class="phase">Einstieg<br><span class="klein">10 min</span></th><td>Den fertigen AR-Würfel zeigen und die Erde erscheinen lassen. Frage: „Wie bekommt man so einen Würfel aus einem flachen Blatt?“</td></tr>
-        <tr><th class="phase">Erarbeitung<br><span class="klein">30 min</span></th><td>Mögliche Würfelnetze aus sechs Quadraten auf Kästchenpapier zeichnen, ausschneiden und falten. Welche funktionieren, welche nicht? Ergebnisse an der Tafel sammeln. Es gibt genau 11 verschiedene Würfelnetze.</td></tr>
-        <tr><th class="phase">Bauen<br><span class="klein">35 min</span></th><td>Den AR-Würfel nach dem Bastelbogen bauen. Vorher überlegen: Welche Fläche liegt gegenüber von Seite 2? (Seite 4) Welche liegt gegenüber von Seite 1? (Seite 6)</td></tr>
-        <tr><th class="phase">Testen<br><span class="klein">15 min</span></th><td>Mit der Kamera prüfen: Sitzt das Objekt ruhig auf dem Würfel, wenn man ihn dreht? Springt es beim Drehen, ist eine Seite falsch gefaltet oder verdreht geklebt. So gibt das Tablet eine echte Rückmeldung zur Geometrie.</td></tr>
-      </table>
-      <div class="etiketten"><span class="etikett">Differenzierung</span></div>
-      <p>Leichter: mit Steckwürfeln oder Polydron arbeiten statt zu zeichnen. Schwieriger: Gegenüberliegende Seiten im Netz einfärben, ohne zu falten. Bei einem Spielwürfel ergeben gegenüberliegende Augen zusammen immer 7. Geht das auch bei unserem Netz?</p>
-    </div>
-  </article>
-
-  <!-- 6 -->
-  <article class="stunde" id="s6" style="--farbe:var(--tuerkis)">
-    <header><h3>6 · Wie sieht das Tablet den Würfel?</h3>
-      <div class="meta">3./4. Schulstufe · Medienbildung, Sachunterricht (Technik) · 1 Einheit · ein Objekt nach Wahl</div></header>
-    <div class="inhalt">
-      <p><b>Ziele:</b> Die Kinder unterscheiden zwischen echten und digitalen Dingen. Sie finden durch Ausprobieren heraus, dass das Tablet Muster erkennt, und erklären Augmented Reality mit eigenen Worten.</p>
-      <p><b>Material:</b> Tablets, Würfel, Papierstreifen, Taschenlampe, Forscherprotokoll</p>
-      <table>
-        <tr><th class="phase">Einstieg<br><span class="klein">10 min</span></th><td>Den Fuchs auf dem Würfel zeigen. „Ist der Fuchs wirklich da?“ Ein Kind darf ihn „streicheln“. Was passiert?</td></tr>
-        <tr><th class="phase">Forschen<br><span class="klein">25 min</span></th><td>Vier Versuche, jeweils erst vermuten und dann testen:<br>① Einen Finger auf den schwarzen Rand legen.<br>② Das Muster mit einem Papierstreifen halb abdecken.<br>③ Den Würfel sehr weit weg und sehr nah halten.<br>④ Das Licht dunkler machen oder mit der Taschenlampe blenden.<br>Ergebnisse ins Forscherprotokoll eintragen.</td></tr>
-        <tr><th class="phase">Erklären<br><span class="klein">10 min</span></th><td>Gemeinsam formulieren: „Das Tablet sucht in jedem Kamerabild nach den schwarzen Quadraten. Es erkennt am Muster, welche Seite es sieht, und malt das Objekt passend dazu ins Bild.“ Vergleich mit QR-Codes an der Kasse oder auf Plakaten.</td></tr>
-        <tr><th class="phase">Nachdenken<br><span class="klein">5 min</span></th><td>Wo begegnet uns so etwas noch (Filter in Apps, Spiele)? Was ist dabei echt? Die Kamera filmt uns dabei. Wer sieht diese Bilder? Hier bleiben sie auf dem Tablet, aber das ist nicht bei jeder App so.</td></tr>
-      </table>
-      <div class="etiketten"><span class="etikett">Differenzierung</span></div>
-      <p>Schwieriger: Ein eigenes Muster auf Kästchenpapier entwerfen. Was muss ein gutes Muster haben? (Es soll eindeutig sein und sich nicht gleich sehen, wenn man es dreht.)</p>
-    </div>
-  </article>
-
-  <h2 id="kurz">Kurzideen</h2>
-  <div class="raster">
-    <div class="karte akzent" style="--farbe:var(--gruen)"><h3>🌳 Apfelbaum im Jahreskreis</h3><p>Den Baum mit dem Würfel betrachten und Jahreszeiten-Bilder dazu zeichnen: Wie sieht er im Winter aus? Dazu einen echten Baum vor der Schule ein Jahr lang fotografieren.</p></div>
-    <div class="karte akzent" style="--farbe:var(--orange)"><h3>🐠 Schreibanlass</h3><p>„Ein Tag im Leben von …“: Die Kinder wählen ein Tier, sehen es sich genau an und schreiben eine Ich-Geschichte. Die Fakten aus dem Steckbrief sollen darin vorkommen.</p></div>
-    <div class="karte akzent" style="--farbe:var(--blau)"><h3>🗣️ Englisch</h3><p>Auf Englisch beschreiben: „It is orange. It has got big ears.“ Die anderen raten das Tier.</p></div>
-    <div class="karte akzent" style="--farbe:var(--lila)"><h3>✏️ Zeichnen aus Perspektiven</h3><p>Ein Tier von vorne, von der Seite und von oben zeichnen. Danach vergleichen: Wie verändert sich die Form?</p></div>
-  </div>
-
-  <h2 id="planen">Eine eigene Stunde planen</h2>
-  <div class="karte">
-    <p>Diese Fragen helfen beim Planen, z. B. für Studierende in der Pädagogisch-praktischen Ausbildung:</p>
-    <ol>
-      <li><b>Mehrwert:</b> Was können die Kinder mit dem 3D-Modell, das sie mit Bild oder Buch nicht können (drehen, von unten sehen, Größe vergleichen)?</li>
-      <li><b>Echte Erfahrung:</b> Wo kommt das echte Objekt oder Phänomen vor, und wann?</li>
-      <li><b>Aktivität:</b> Was tun die Kinder mit dem Würfel? Beobachten, beschreiben, zählen, vergleichen, überprüfen …</li>
-      <li><b>Organisation:</b> Wie viele Geräte gibt es, wie sind die Rollen verteilt, wie lange dauert der Gerätewechsel? Was ist der Plan B ohne Kamera?</li>
-      <li><b>Sicherung:</b> Was bleibt am Ende auf Papier, im Heft oder an der Wand?</li>
-      <li><b>Reflexion:</b> Was ist echt, was ist digital? Was hat das Modell weggelassen oder vereinfacht?</li>
-    </ol>
-    <p class="klein">Die 3D-Modelle sind bewusst vereinfacht (aus Kugeln, Kegeln und Zylindern). Das ist ein guter Gesprächsanlass: Was stimmt am Modell, was nicht?</p>
-  </div>
-  <div class="knopfreihe nicht-drucken" style="margin-top:20px"><button class="knopf zweit" onclick="window.print()">🖨️ Seite drucken</button></div>
-</main>
-
-<footer><div class="huelle">Unterrichtsideen zur freien Verwendung im eigenen Unterricht.</div></footer>
+  document.getElementById("form").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var knopf = document.getElementById("los"), fehler = document.getElementById("fehler");
+    knopf.disabled = true; knopf.textContent = "Wird geöffnet …"; fehler.textContent = "";
+    var roh;
+    ausPasswort(document.getElementById("pw").value).then(function (k) { roh = k; return entschluesseln(k); }).then(function (html) {
+      if (document.getElementById("merken").checked) merken(hex(roh));
+      zeige(html);
+    }).catch(function () {
+      knopf.disabled = false; knopf.textContent = "Öffnen"; fehler.textContent = "Das Passwort stimmt nicht.";
+    });
+  });
+})();
+</script>
 </body>
 </html>
