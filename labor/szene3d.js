@@ -24,7 +24,7 @@ export function neueSzene() {
     titel: "Neue Szene",
     groesse: 0.45,
     modell: { quelle: "beispiel", id: "ente" },
-    info: { an: true, titel: "Info zum Tier", text: "Hier stehen allgemeine Informationen zum Tier, z. B. Lebensraum, Nahrung und Besonderheiten.", ton: { art: "ding" } },
+    info: { an: true, titel: "Info", text: "Hier stehen allgemeine Informationen, z. B. Herkunft, Größe und Besonderheiten.", ton: { art: "ding" } },
     notizen: [],
   };
 }

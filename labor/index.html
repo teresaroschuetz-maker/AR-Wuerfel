@@ -44,7 +44,7 @@
 <body>
 <div class="streifen"><i style="background:#F28C28"></i><i style="background:#1FA2A6"></i><i style="background:#7B5CC9"></i><i style="background:#3FA34D"></i><i style="background:#2F6FD6"></i><i style="background:#E04F7A"></i></div>
 <div class="kopf">
-  <div style="flex:1"><h1>AR Creator-Labor</h1><p>Tiere mit Notizen und Tönen für den Raum gestalten</p></div>
+  <div style="flex:1"><h1>AR Creator-Labor</h1><p>3D-Modelle mit Notizen und Tönen für den Raum gestalten</p></div>
   <button id="abmelden" class="klein" hidden>Abmelden</button>
 </div>
 
@@ -85,7 +85,7 @@
     <div class="editor">
       <div class="klebrig">
         <div class="karte">
-          <div id="ansicht" class="ansicht"><button id="infoKnopf" aria-label="Info zum Tier" title="Info zum Tier">i</button><div id="infoFenster" hidden></div></div>
+          <div id="ansicht" class="ansicht"><button id="infoKnopf" aria-label="Info" title="Info">i</button><div id="infoFenster" hidden></div></div>
           <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf einen Punkt: Die Notiz öffnet sich und der Ton spielt. Tippe auf die Karte, um sie zu schließen.</p>
           <div class="ar-bereich">
             <a id="arLink" rel="ar" href="#" hidden><img id="arBild" alt="Im Raum ansehen"></a>
@@ -106,8 +106,8 @@
         </div>
 
         <div class="karte">
-          <h2>2 · Info zum Tier</h2>
-          <label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="infoAn" style="width:20px;height:20px"> ⓘ-Schild neben dem Tier anzeigen</label>
+          <h2>2 · Info</h2>
+          <label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="infoAn" style="width:20px;height:20px"> ⓘ-Schild neben dem Modell anzeigen</label>
           <div id="infoFelder">
             <label for="infoTitel">Überschrift</label><input type="text" id="infoTitel" maxlength="30">
             <label for="infoText">Allgemeine Informationen</label><textarea id="infoText" maxlength="600" style="min-height:120px"></textarea>
@@ -116,10 +116,10 @@
         </div>
 
         <div class="karte">
-          <h2>3 · Punkte am Tier</h2>
+          <h2>3 · Punkte</h2>
           <div id="notizListe"></div>
           <div class="reihe"><button id="neuWort">+ Wort</button><button id="neuNotiz">+ Notiz</button></div>
-          <p class="hinweis"><b>Wort</b>: kleines Etikett mit einem Begriff. <b>Notiz</b>: Karte mit Überschrift und Text. Mit „📍 Auf das Tier setzen“ und einem Tipp in die Vorschau legst du fest, wo der Punkt sitzt.</p>
+          <p class="hinweis"><b>Wort</b>: kleines Etikett mit einem Begriff. <b>Notiz</b>: Karte mit Überschrift und Text. Mit „📍 Platzieren“ und einem Tipp in die Vorschau legst du fest, wo der Punkt sitzt.</p>
         </div>
       </div>
     </div>
@@ -142,7 +142,7 @@
     <div class="reihe" style="justify-content:flex-end;margin-top:16px"><button id="teilenZu" class="haupt">Fertig</button></div>
   </div>
 </div>
-<div id="druckBereich"><h1 id="druckTitel"></h1><img id="druckQR" alt=""><p>Mit dem iPad scannen und das Tier in den Raum stellen.</p></div>
+<div id="druckBereich"><h1 id="druckTitel"></h1><img id="druckQR" alt=""><p>Mit dem iPad scannen und das Modell in den Raum stellen.</p></div>
 
 <script type="module">
 import { Szene3D, FARBEN, BEISPIELMODELLE, neueSzene, kannAR, arKnopfBild } from "./szene3d.js";
@@ -435,7 +435,7 @@ function zeigeNotizen() {
       <label>${wort ? "Wort" : "Überschrift"}</label><input type="text" data-feld="titel" maxlength="${wort ? 18 : 22}">
       ${wort ? "" : '<label>Text</label><textarea data-feld="text" maxlength="260"></textarea>'}
       <label>Farbe</label><div class="farben">${FARBEN.map((f, k) => `<button data-farbe="${k}" class="${k === n.farbe % FARBEN.length ? "aktiv" : ""}" style="background:${f}" aria-label="Farbe ${k + 1}"></button>`).join("")}</div>
-      <div class="reihe"><button data-setzen class="${platzieren === n ? "haupt" : ""}">📍 ${platzieren === n ? "Jetzt in der Vorschau aufs Tier tippen …" : "Auf das Tier setzen"}</button></div>
+      <div class="reihe"><button data-setzen class="${platzieren === n ? "haupt" : ""}">📍 ${platzieren === n ? "Jetzt in der Vorschau aufs Modell tippen …" : "Platzieren"}</button></div>
       <div data-ton></div>`;
     el.querySelector('[data-feld="titel"]').value = n.titel || "";
     if (!wort) el.querySelector('[data-feld="text"]').value = n.text || "";
@@ -455,7 +455,7 @@ function zeigeNotizen() {
       if (platzieren === n) { platzieren = null; s3d.beimPlatzieren = null; zeigeNotizen(); return; }
       platzieren = n;
       s3d.beimPlatzieren = (p) => {
-        if (!p) { $("arStatus").textContent = "Daneben – bitte direkt auf das Tier tippen."; return; }
+        if (!p) { $("arStatus").textContent = "Daneben – bitte direkt auf das Modell tippen."; return; }
         n.punkt = p; platzieren = null; $("arStatus").textContent = "";
         zeigeNotizen(); s3d.aktualisiere(); veraendert();
       };
