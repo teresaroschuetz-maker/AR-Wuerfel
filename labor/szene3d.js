@@ -2,6 +2,9 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { KTX2Loader } from "three/addons/loaders/KTX2Loader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 import { zipUSDZ, dingWAV, baueUSDA } from "./usdz.js";
 
 export const FARBEN = ["#F28C28", "#1FA2A6", "#7B5CC9", "#3FA34D", "#2F6FD6", "#E04F7A"];
@@ -172,7 +175,15 @@ export class Szene3D {
 
   // ---- Modell ----
   async ladeModell(quelle) {
+    // Auch komprimierte Modelle (Draco, Meshopt, KTX2-Texturen) lesen können
     const loader = new GLTFLoader();
+    const draco = new DRACOLoader(); draco.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
+    loader.setDRACOLoader(draco);
+    loader.setMeshoptDecoder(MeshoptDecoder);
+    try {
+      const ktx2 = new KTX2Loader().setTranscoderPath("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/basis/").detectSupport(this.renderer);
+      loader.setKTX2Loader(ktx2);
+    } catch (e) { /* ohne KTX2 weiter */ }
     let gltf = null, fehler = null;
     if (quelle instanceof ArrayBuffer) gltf = await loader.parseAsync(quelle, "");
     else for (const url of [].concat(quelle)) { try { gltf = await loader.loadAsync(url); break; } catch (e) { fehler = e; } }
@@ -233,8 +244,9 @@ export class Szene3D {
         const mat = mats[gr.materialIndex] || mats[0];
         if (!matIndex.has(mat)) {
           const eintrag = { color: mat.color ? [mat.color.r, mat.color.g, mat.color.b] : [0.8, 0.8, 0.8], opacity: mat.transparent ? mat.opacity : 1, roughness: mat.roughness ?? 0.8 };
-          if (mat.map?.image) {
-            const png = await bildZuPNG(mat.map.image);
+          if (mat.map?.image && !mat.map.isCompressedTexture) {
+            let png = null;
+            try { png = await bildZuPNG(mat.map.image); } catch (e) { png = null; }
             if (png) { eintrag.texture = `textures/tier_${texturen.length}.png`; texturen.push({ name: eintrag.texture, data: png }); }
           }
           matIndex.set(mat, materialien.length); materialien.push(eintrag);
@@ -242,6 +254,7 @@ export class Szene3D {
         meshes.push({ points: P, normals: N, uvs: UV, indices: idx.slice(gr.start, Math.min(idx.length, gr.start + gr.count)), material: matIndex.get(mat) });
       }
     }
+    if (!meshes.length || !isFinite(min.x)) throw new Error("Die Datei enthält kein sichtbares 3D-Modell.");
     const groesse = new THREE.Vector3().subVectors(max, min);
     return { meshes, materials: materialien, texturen, min, max, groesse, mitte: new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5), maxDim: Math.max(groesse.x, groesse.y, groesse.z) || 1 };
   }

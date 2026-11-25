@@ -100,7 +100,8 @@
           <label for="titel">Titel (sehen auch die Kinder)</label><input type="text" id="titel" maxlength="60">
           <label for="modellWahl">Modell</label>
           <select id="modellWahl"></select>
-          <input type="file" id="glbDatei" accept=".glb,model/gltf-binary" hidden>
+          <div class="reihe"><label for="glbDatei" class="knopf" style="cursor:pointer">📁 Eigene GLB-Datei hochladen</label><span class="hinweis" id="glbHinweis" style="margin:0"></span></div>
+          <input type="file" id="glbDatei" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
           <label for="groesse">Größe im Raum</label>
           <div class="groesse"><input type="range" id="groesse" min="15" max="200" step="5"><span id="groesseText" style="min-width:64px;text-align:right"></span></div>
         </div>
@@ -150,7 +151,7 @@ import { Szene3D, FARBEN, BEISPIELMODELLE, neueSzene, kannAR, arKnopfBild } from
 const API = "api.php";
 const $ = (id) => document.getElementById(id);
 const MAX_NOTIZEN = 12;
-let token = null;
+let token = null, serverLimit = 0;
 try { token = localStorage.getItem("labor-token"); } catch (e) {}
 
 async function api(aktion, felder = {}, dateien = {}) {
@@ -178,6 +179,7 @@ function zeigeAnmelden() { token = null; try { localStorage.removeItem("labor-to
 (async () => {
   try {
     const r = await fetch(API + "?aktion=status").then((x) => x.json());
+    serverLimit = r.maxUpload || 0;
     if (!r.eingerichtet) { zeige("einrichten"); return; }
   } catch (e) {
     document.querySelector("main").innerHTML = '<div class="karte mitte"><h2>Server nicht erreichbar</h2><p class="hinweis">Das Creator-Labor braucht PHP auf dem Webspace. Bitte über https://ar.werkraum-lehre.at/labor/ öffnen.</p></div>';
@@ -256,10 +258,11 @@ function fuelleModellWahl() {
   const og = document.createElement("optgroup"); og.label = "Zum Ausprobieren";
   for (const [id, m] of Object.entries(BEISPIELMODELLE)) { const o = document.createElement("option"); o.value = "beispiel:" + id; o.textContent = m.name; og.appendChild(o); }
   w.appendChild(og);
-  const og2 = document.createElement("optgroup"); og2.label = "Eigenes Modell";
-  const oe = document.createElement("option"); oe.value = "eigen"; oe.textContent = szene.modell.quelle === "eigen" ? `Eigenes: ${szene.modell.name || "modell.glb"}` : "Eigene GLB-Datei hochladen …"; og2.appendChild(oe);
-  if (szene.modell.quelle === "eigen") { const on = document.createElement("option"); on.value = "eigen-neu"; on.textContent = "Andere GLB-Datei hochladen …"; og2.appendChild(on); }
-  w.appendChild(og2);
+  if (szene.modell.quelle === "eigen") {
+    const og2 = document.createElement("optgroup"); og2.label = "Eigenes Modell";
+    const oe = document.createElement("option"); oe.value = "eigen"; oe.textContent = `Eigenes: ${szene.modell.name || "modell.glb"}`; og2.appendChild(oe);
+    w.appendChild(og2);
+  }
   w.value = szene.modell.quelle === "eigen" ? "eigen" : `${szene.modell.quelle}:${szene.modell.id}`;
 }
 function modellQuelle() {
@@ -306,10 +309,17 @@ async function ladeAktuellesModell(standardPunkte) {
     s3d.aktualisiere();
     $("arStatus").textContent = "";
     arSpaeter(0);
+    return true;
   } catch (e) {
+    console.error(e);
+    if (szene.modell.quelle === "eigen" && eigenesModell) {
+      alert("Dieses Modell kann leider nicht gelesen werden. Technischer Hinweis: " + (e.message || e));
+      return false;
+    }
     $("arStatus").textContent = szene.modell.quelle === "bibliothek"
       ? `Das Modell „${szene.modell.name}“ wurde nicht gefunden. Liegt die Datei modelle/${szene.modell.datei} auf dem Server?`
       : "Das Modell konnte nicht geladen werden: " + e.message;
+    return false;
   }
 }
 
@@ -331,7 +341,7 @@ $("groesse").addEventListener("change", (e) => { s3d.setzeGroesse(+e.target.valu
 $("modellWahl").addEventListener("change", async (e) => {
   const v = e.target.value;
   if (v === "eigen" && szene.modell.quelle === "eigen") return;
-  if (v === "eigen" || v === "eigen-neu") { fuelleModellWahl(); $("glbDatei").value = ""; $("glbDatei").click(); return; }
+
   if (szene.notizen.length && !confirm("Beim Wechsel des Modells werden alle Punkte neu verteilt. Weiter?")) { fuelleModellWahl(); return; }
   const [quelle, id] = v.split(":");
   if (quelle === "bibliothek") { const m = bibliothek.find((x) => x.id === id); szene.modell = { quelle, id, name: m.name, datei: m.datei }; }
@@ -340,14 +350,30 @@ $("modellWahl").addEventListener("change", async (e) => {
   fuelleModellWahl(); veraendert(); await ladeAktuellesModell(true);
 });
 $("glbDatei").addEventListener("change", async (e) => {
-  const f = e.target.files[0]; if (!f) return;
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  const hinweis = (t) => { $("glbHinweis").textContent = t; };
+  if (!/\.glb$/i.test(f.name)) { alert(`„${f.name}“ ist keine GLB-Datei. Bitte eine Datei mit der Endung .glb wählen (nicht .gltf, .usdz oder .zip).`); return; }
+  if (serverLimit && f.size > serverLimit) {
+    alert(`Die Datei ist ${(f.size / 1048576).toFixed(1)} MB groß. Der Server nimmt höchstens ${(serverLimit / 1048576).toFixed(0)} MB an.`);
+    return;
+  }
   if (f.size > 40 * 1024 * 1024) { alert("Die Datei ist zu groß (höchstens 40 MB)."); return; }
+  hinweis("Datei wird gelesen …");
   const buf = await f.arrayBuffer();
-  if (new TextDecoder().decode(new Uint8Array(buf, 0, 4)) !== "glTF") { alert("Das ist keine GLB-Datei. Bitte eine .glb-Datei wählen."); return; }
-  if (szene.notizen.length && !confirm("Beim Wechsel des Modells werden alle Punkte neu verteilt. Weiter?")) return;
+  if (new TextDecoder().decode(new Uint8Array(buf, 0, 4)) !== "glTF") { hinweis(""); alert("Diese Datei ist keine gültige GLB-Datei."); return; }
+  if (szene.notizen.length && !confirm("Beim Wechsel des Modells werden alle Punkte neu verteilt. Weiter?")) { hinweis(""); return; }
+  const vorher = { modell: szene.modell, eigenesModell, modellNeu };
   eigenesModell = buf; modellNeu = true;
   szene.modell = { quelle: "eigen", name: f.name.replace(/\.glb$/i, "") };
-  fuelleModellWahl(); veraendert(); await ladeAktuellesModell(true);
+  fuelleModellWahl(); hinweis("");
+  const ok = await ladeAktuellesModell(true);
+  if (!ok) { // zurück zum vorherigen Modell
+    szene.modell = vorher.modell; eigenesModell = vorher.eigenesModell; modellNeu = vorher.modellNeu;
+    fuelleModellWahl(); await ladeAktuellesModell(true);
+    return;
+  }
+  veraendert();
 });
 
 // ---------- Info ----------

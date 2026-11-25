@@ -106,12 +106,21 @@ function ton_ok(string $datei, string $endung): bool {
 }
 
 sicherstellen();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && empty($_POST) && (int)($_SERVER['CONTENT_LENGTH'] ?? 0) > 0) {
+    fehler('Die Daten sind zu groß für den Server (Upload-Grenze: ' . ini_get('post_max_size') . ').', 413);
+}
 $aktion = (string)($_POST['aktion'] ?? $_GET['aktion'] ?? '');
 
 switch ($aktion) {
 
 case 'status':
-    antwort(['ok' => true, 'eingerichtet' => konfig() !== null]);
+    $bytes = function (string $w): int {
+        $w = trim($w); $z = (int)$w;
+        switch (strtolower(substr($w, -1))) { case 'g': $z *= 1024; case 'm': $z *= 1024; case 'k': $z *= 1024; }
+        return $z;
+    };
+    $limit = min($bytes((string)ini_get('upload_max_filesize')), $bytes((string)ini_get('post_max_size')));
+    antwort(['ok' => true, 'eingerichtet' => konfig() !== null, 'maxUpload' => $limit]);
 
 case 'einrichten':
     if (konfig()) fehler('Das Labor ist bereits eingerichtet.', 403);
