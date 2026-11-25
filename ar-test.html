@@ -316,6 +316,33 @@ function kartenMesh(b, h) {
   };
 }
 
+// Zerlegt ein Mesh in kleine räumliche Stücke. Apples AR-Ansicht prüft Tipps offenbar
+// über eine Kiste um jedes Mesh – kleine Stücke ergeben kleine Kisten, die Punkte bleiben frei.
+function teileMesh(m, zelle) {
+  const P = m.points, gruppen = new Map();
+  for (let f = 0; f < m.indices.length; f += 3) {
+    const a = m.indices[f], b = m.indices[f + 1], c = m.indices[f + 2];
+    const k = [0, 1, 2].map((d) => Math.floor((P[a * 3 + d] + P[b * 3 + d] + P[c * 3 + d]) / 3 / zelle)).join(",");
+    if (!gruppen.has(k)) gruppen.set(k, []);
+    gruppen.get(k).push(a, b, c);
+  }
+  const teile = [];
+  for (const idx of gruppen.values()) {
+    const neu = new Map(), pts = [], nrm = m.normals ? [] : null, uv = m.uvs ? [] : null, ind = [];
+    for (const i of idx) {
+      if (!neu.has(i)) {
+        neu.set(i, pts.length / 3);
+        pts.push(P[i * 3], P[i * 3 + 1], P[i * 3 + 2]);
+        if (nrm) nrm.push(m.normals[i * 3], m.normals[i * 3 + 1], m.normals[i * 3 + 2]);
+        if (uv) uv.push(m.uvs[i * 2], m.uvs[i * 2 + 1]);
+      }
+      ind.push(neu.get(i));
+    }
+    teile.push({ points: pts, normals: nrm, uvs: uv, indices: ind, material: m.material });
+  }
+  return teile;
+}
+
 function kugelMesh(r, ringe = 12, segmente = 20) {
   const points = [], normals = [], indices = [];
   for (let a = 0; a <= ringe; a++) {
@@ -388,7 +415,17 @@ ${I}    uniform token[] xformOpOrder = ["xformOp:transform"]
 
 `;
   szene.tier.materials.forEach((mat, i) => { materialien += materialUSDA(`TierMat_${i}`, mat, `${M}/TierMat_${i}`, I + "    "); });
-  szene.tier.meshes.forEach((m, i) => { inhalt += meshUSDA(`Teil_${i}`, m, `${M}/TierMat_${m.material}`, I + "    ", false); });
+  // Stückgröße: etwa 1/14 der größten Abmessung (in Modell-Einheiten)
+  let lo = [Infinity, Infinity, Infinity], hi = [-Infinity, -Infinity, -Infinity];
+  for (const m of szene.tier.meshes) for (let i = 0; i < m.points.length; i += 3) for (let k = 0; k < 3; k++) {
+    lo[k] = Math.min(lo[k], m.points[i + k]); hi[k] = Math.max(hi[k], m.points[i + k]);
+  }
+  const zelle = Math.max(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / (szene.tier.stuecke || 14);
+  let nr = 0;
+  szene.tier.meshes.forEach((m) => {
+    const teile = zelle > 0 ? teileMesh(m, zelle) : [m];
+    for (const t of teile) inhalt += meshUSDA(`Teil_${nr++}`, t, `${M}/TierMat_${m.material}`, I + "    ", false);
+  });
   inhalt += `${I}}
 
 `;
@@ -711,8 +748,8 @@ function panelLage(punkt, b, h, wort) {
   lageCache.set(schluessel, lage);
   return lage;
 }
-// Kugel sitzt zu drei Vierteln außerhalb der Oberfläche, damit sie gut antippbar ist
-function punktMitte(punkt) { return punkt.p.map((v, k) => v + punkt.n[k] * PUNKT_R * 0.5); }
+// Kugel sitzt ganz außerhalb der Oberfläche, damit sie gut antippbar ist
+function punktMitte(punkt) { return punkt.p.map((v, k) => v + punkt.n[k] * PUNKT_R * 1.15); }
 function trefferAufTier(start, richtung) {
   if (!tierGruppe) return null;
   tierGruppe.updateMatrixWorld(true);
