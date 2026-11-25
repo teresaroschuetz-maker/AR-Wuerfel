@@ -36,6 +36,9 @@
   #status{font-size:14px;color:var(--grau);margin-top:6px;min-height:20px}
   .checkliste label{display:flex;gap:10px;align-items:flex-start;color:var(--text);font-size:15px;margin:8px 0}
   .checkliste input{width:20px;height:20px;flex:none;margin-top:1px}
+  #infoKnopf{position:absolute;top:10px;right:10px;width:44px;height:44px;border-radius:50%;padding:0;background:#2F6FD6;color:#fff;font:700 24px Georgia,serif;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:2}
+  #infoFenster{position:absolute;top:62px;right:10px;left:10px;max-width:420px;margin-left:auto;background:#FFFDF6;border-radius:16px;box-shadow:0 6px 22px rgba(0,0,0,.2);padding:16px 18px;z-index:2;max-height:calc(100% - 74px);overflow:auto;border-top:8px solid #2F6FD6}
+  #infoFenster h3{margin:0 0 8px;font-size:19px} #infoFenster p{margin:0 0 10px;font-size:15px;line-height:1.45;white-space:pre-wrap}
   .warnung{background:#FFF4E5;border-radius:12px;padding:10px 12px;font-size:14px;margin-top:10px}
 </style>
 <script type="importmap">
@@ -55,8 +58,8 @@
 <main>
   <section class="karte">
     <h2>1 · Vorschau</h2>
-    <div id="ansicht"></div>
-    <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf eine farbige Notiz-Karte: Der Text öffnet sich und der Ton spielt. Tippe auf den Text, um ihn zu schließen.</p>
+    <div id="ansicht"><button id="infoKnopf" aria-label="Info zum Tier" title="Info zum Tier">i</button><div id="infoFenster" hidden></div></div>
+    <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf einen farbigen Punkt: Der Text öffnet sich und der Ton spielt. Tippe auf den Text, um ihn zu schließen.</p>
 
     <label for="modellWahl">Modell</label>
     <select id="modellWahl">
@@ -76,20 +79,32 @@
 
   <section>
     <div class="karte" style="margin-bottom:18px">
-      <h2>2 · Notizen</h2>
+      <h2>2 · Info zum Tier</h2>
+      <label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="infoAn" checked style="width:20px;height:20px"> ⓘ-Schild neben dem Tier anzeigen</label>
+      <label for="infoTitel">Überschrift</label><input type="text" id="infoTitel" maxlength="30">
+      <label for="infoText">Allgemeine Informationen</label><textarea id="infoText" maxlength="600" style="min-height:120px"></textarea>
+      <label for="infoTon">Ton beim Antippen</label>
+      <select id="infoTon"><option value="standard">Test-Ton („Ding“)</option><option value="aufnahme" disabled>Eigene Aufnahme – erst aufnehmen</option><option value="kein">Kein Ton</option></select>
+      <div class="reihe"><button id="infoAuf">🎙 Aufnehmen</button><button id="infoHoer">▶ Anhören</button></div>
+    </div>
+
+    <div class="karte" style="margin-bottom:18px">
+      <h2>3 · Notizen</h2>
       <div id="notizListe"></div>
       <div class="reihe"><button id="notizNeu">+ Notiz hinzufügen</button></div>
+      <p class="hinweis">Mit „📍 Auf das Tier setzen“ und einem Tipp in die Vorschau legst du fest, wo der Punkt sitzt.</p>
     </div>
 
     <div class="karte checkliste">
-      <h2>3 · Test auf dem iPad</h2>
+      <h2>4 · Test auf dem iPad</h2>
       <p class="hinweis" style="margin-top:0">Oben auf „Im Raum ansehen“ tippen, das Tier auf den Boden oder Tisch stellen und dann prüfen:</p>
       <label><input type="checkbox"> Das Tier erscheint im Raum.</label>
-      <label><input type="checkbox"> Über dem Tier sind die farbigen Notiz-Karten zu sehen, die Textkarten sind noch versteckt.</label>
-      <label><input type="checkbox"> Antippen einer Notiz-Karte öffnet den Text.</label>
+      <label><input type="checkbox"> Am Tier sind die farbigen Punkte zu sehen, die Textkarten sind noch versteckt.</label>
+      <label><input type="checkbox"> Antippen eines Punkts öffnet den Text daneben.</label>
       <label><input type="checkbox"> Beim Antippen ist der Ton zu hören (Lautlos-Schalter aus, Lautstärke an).</label>
       <label><input type="checkbox"> Antippen des Texts schließt ihn wieder.</label>
       <label><input type="checkbox"> Eine eigene Aufnahme (🎙) wird in AR abgespielt.</label>
+      <label><input type="checkbox"> Das ⓘ-Schild links vorne öffnet beim Antippen die Info-Karte.</label>
       <p class="hinweis">Bitte melde Claude, welche Punkte klappen und welche nicht.</p>
     </div>
   </section>
@@ -253,11 +268,15 @@ ${e}        uniform token info:id = "UsdPreviewSurface"
 `;
   else s += `${e}        color3f inputs:diffuseColor = (${c.map(zahl).join(", ")})
 `;
-  if (mat.emissive) s += `${e}        color3f inputs:emissiveColor.connect = <${pfad}/Bild.outputs:rgb>
+  if (mat.emissive && mat.texture) s += `${e}        color3f inputs:emissiveColor.connect = <${pfad}/Bild.outputs:rgb>
+`;
+  else if (mat.emissive) s += `${e}        color3f inputs:emissiveColor = (${c.map((x) => zahl(x * 0.55)).join(", ")})
 `;
   s += `${e}        float inputs:metallic = 0
-${e}        float inputs:opacity = ${zahl(deckkraft)}
-${e}        float inputs:roughness = ${zahl(mat.roughness == null ? 0.8 : mat.roughness)}
+${mat.alpha && mat.texture ? `${e}        float inputs:opacity.connect = <${pfad}/Bild.outputs:a>
+${e}        float inputs:opacityThreshold = 0.5
+` : `${e}        float inputs:opacity = ${zahl(deckkraft)}
+`}${e}        float inputs:roughness = ${zahl(mat.roughness == null ? 0.8 : mat.roughness)}
 ${e}        token outputs:surface
 ${e}    }
 `;
@@ -295,6 +314,24 @@ function kartenMesh(b, h) {
     uvs: [0, 1, 1, 1, 1, 0, 0, 0], // wird beim Schreiben auf USD-Konvention (v nach oben) gedreht
     indices: [0, 1, 2, 0, 2, 3],
   };
+}
+
+function kugelMesh(r, ringe = 12, segmente = 20) {
+  const points = [], normals = [], indices = [];
+  for (let a = 0; a <= ringe; a++) {
+    const t = (a / ringe) * Math.PI;
+    for (let b = 0; b <= segmente; b++) {
+      const p = (b / segmente) * Math.PI * 2;
+      const x = Math.sin(t) * Math.sin(p), y = Math.cos(t), z = Math.sin(t) * Math.cos(p);
+      normals.push(x, y, z); points.push(x * r, y * r, z * r);
+    }
+  }
+  for (let a = 0; a < ringe; a++) for (let b = 0; b < segmente; b++) {
+    const i = a * (segmente + 1) + b, j = i + segmente + 1;
+    if (a > 0) indices.push(i, j, i + 1);
+    if (a < ringe - 1) indices.push(i + 1, j, j + 1);
+  }
+  return { points, normals, uvs: null, indices };
 }
 
 function sichtbarkeitsAktion(name, typ, ziele, einzug) {
@@ -361,7 +398,8 @@ ${I}    uniform token[] xformOpOrder = ["xformOp:transform"]
   szene.notizen.forEach((n, i) => {
     const N = `${S}/Notiz_${i}`;
     panels.push(`${N}/Panel`);
-    materialien += materialUSDA(`PinMat_${i}`, { texture: n.pin.textur, emissive: true, roughness: 1 }, `${M}/PinMat_${i}`, I + "    ");
+    if (n.punkt.karte) materialien += materialUSDA(`PinMat_${i}`, { texture: n.punkt.karte.textur, emissive: true, roughness: 1, alpha: true }, `${M}/PinMat_${i}`, I + "    ");
+    else materialien += materialUSDA(`PinMat_${i}`, { color: n.punkt.farbe, emissive: true, roughness: 0.4 }, `${M}/PinMat_${i}`, I + "    ");
     materialien += materialUSDA(`PanelMat_${i}`, { texture: n.panel.textur, emissive: true, roughness: 1 }, `${M}/PanelMat_${i}`, I + "    ");
     inhalt += `${I}def Xform "Notiz_${i}"
 ${I}{
@@ -370,12 +408,15 @@ ${I}    uniform token[] xformOpOrder = ["xformOp:translate"]
 
 ${I}    def Xform "Pin"
 ${I}    {
-${meshUSDA("Karte", kartenMesh(n.pin.b, n.pin.h), `${M}/PinMat_${i}`, I + "        ", true)}${I}    }
+${n.punkt.karte
+  ? meshUSDA("Schild", kartenMesh(n.punkt.karte.b, n.punkt.karte.h), `${M}/PinMat_${i}`, I + "        ", true)
+  : meshUSDA("Punkt", kugelMesh(n.punkt.radius), `${M}/PinMat_${i}`, I + "        ", false)}${I}    }
 
 ${I}    def Xform "Panel"
 ${I}    {
-${I}        double3 xformOp:translate = (0, ${zahl(n.panel.h / 2 + n.pin.h / 2 + 0.01)}, 0.01)
-${I}        uniform token[] xformOpOrder = ["xformOp:translate"]
+${I}        double3 xformOp:translate = (${n.panel.versatz.map(zahl).join(", ")})
+${I}        float xformOp:rotateY = ${zahl(n.panel.drehungY || 0)}
+${I}        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateY"]
 ${meshUSDA("Karte", kartenMesh(n.panel.b, n.panel.h), `${M}/PanelMat_${i}`, I + "        ", true)}${I}    }
 ${I}}
 
@@ -501,15 +542,19 @@ const MODELLE = {
 };
 const FARBEN = ["#F28C28", "#1FA2A6", "#7B5CC9", "#3FA34D", "#2F6FD6", "#E04F7A"];
 const ZIELGROESSE = 0.45;          // größte Abmessung des Tiers in Metern
-const PIN = { b: 0.2, h: 0.07 };   // Notiz-Karte (geschlossen)
+const PUNKT_R = 0.022;             // Radius des Notiz-Punkts in Metern
 const PANEL = { b: 0.3, h: 0.2 };  // Textkarte (geöffnet)
 const enc = new TextEncoder();
 const $ = (id) => document.getElementById(id);
 const status = (t) => { $("status").textContent = t; };
 
+const INFO_SCHILD = { b: 0.09, h: 0.09 };
+const INFO_PANEL = { b: 0.42, h: 0.315 };
+const info = { an: true, titel: "Die Stockente", text: "Hier stehen allgemeine Informationen zum Tier, zum Beispiel:\nLebensraum: Teiche, Seen und Flüsse\nNahrung: Pflanzen, Insekten, Schnecken\nBesonderheit: Das Männchen hat einen grün schimmernden Kopf.", tonArt: "standard", aufnahme: null, frequenz: 523 };
+let tierMasse = { b: 0.4, t: 0.4 };
 let notizen = [
-  { titel: "Tippe mich an!", text: "Das ist die erste Notiz. Beim Antippen öffnet sich dieser Text und ein Ton erklingt.", farbe: 0, tonArt: "standard", aufnahme: null, frequenz: 880 },
-  { titel: "Zweite Notiz", text: "Tippe auf diese Textkarte, um sie wieder zu schließen.", farbe: 1, tonArt: "standard", aufnahme: null, frequenz: 660 },
+  { titel: "Tippe mich an!", text: "Das ist die erste Notiz. Beim Antippen öffnet sich dieser Text und ein Ton erklingt.", farbe: 0, tonArt: "standard", aufnahme: null, frequenz: 880, punkt: null },
+  { titel: "Zweite Notiz", text: "Tippe auf diese Textkarte, um sie wieder zu schließen.", farbe: 1, tonArt: "standard", aufnahme: null, frequenz: 660, punkt: null },
 ];
 
 // ---------- Karten zeichnen ----------
@@ -525,20 +570,6 @@ function textUmbruch(ctx, text, maxB) {
   }
   return zeilen;
 }
-function zeichnePin(n) {
-  const c = document.createElement("canvas"); c.width = 640; c.height = 224;
-  const x = c.getContext("2d");
-  x.fillStyle = FARBEN[n.farbe]; x.fillRect(0, 0, c.width, c.height);
-  x.fillStyle = "rgba(255,255,255,.25)"; x.fillRect(0, 0, c.width, 14);
-  x.fillStyle = "#fff"; x.font = "bold 64px system-ui, -apple-system, sans-serif"; x.textBaseline = "middle";
-  const ton = n.tonArt !== "kein";
-  let t = n.titel || "Notiz";
-  const maxB = c.width - (ton ? 150 : 60);
-  while (x.measureText(t).width > maxB && t.length > 1) t = t.slice(0, -2) + "…";
-  x.fillText(t, 32, c.height / 2 + 4);
-  if (ton) { x.font = "80px system-ui, sans-serif"; x.fillText("🔊", c.width - 118, c.height / 2 + 6); }
-  return c;
-}
 function zeichnePanel(n) {
   const c = document.createElement("canvas"); c.width = 960; c.height = 640;
   const x = c.getContext("2d");
@@ -546,13 +577,44 @@ function zeichnePanel(n) {
   x.fillStyle = FARBEN[n.farbe]; x.fillRect(0, 0, c.width, 26); x.fillRect(0, 0, 14, c.height);
   x.fillStyle = "#22252B"; x.textBaseline = "top";
   x.font = "bold 58px system-ui, -apple-system, sans-serif";
-  x.fillText(n.titel || "Notiz", 50, 56);
+  x.fillText((n.tonArt !== "kein" ? "🔊 " : "") + (n.titel || "Notiz"), 50, 56);
   x.font = "44px system-ui, -apple-system, sans-serif";
   const zeilen = textUmbruch(x, n.text || "", c.width - 100).slice(0, 8);
   zeilen.forEach((z, i) => x.fillText(z, 50, 150 + i * 56));
   x.fillStyle = "#8A8F9C"; x.font = "32px system-ui, sans-serif";
   x.fillText("Tippen zum Schließen", 50, c.height - 62);
   return c;
+}
+function zeichneInfoSchild() {
+  const c = document.createElement("canvas"); c.width = 256; c.height = 256;
+  const x = c.getContext("2d");
+  x.fillStyle = "#fff"; x.beginPath(); x.arc(128, 128, 124, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#2F6FD6"; x.beginPath(); x.arc(128, 128, 108, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#fff"; x.font = "bold 160px Georgia, 'Times New Roman', serif"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText("i", 128, 138);
+  return c;
+}
+function zeichneInfoPanel() {
+  const c = document.createElement("canvas"); c.width = 1200; c.height = 900;
+  const x = c.getContext("2d");
+  x.fillStyle = "#FFFDF6"; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = "#2F6FD6"; x.fillRect(0, 0, c.width, 30);
+  x.beginPath(); x.arc(92, 112, 44, 0, Math.PI * 2); x.fill();
+  x.fillStyle = "#fff"; x.font = "bold 62px Georgia, serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("i", 92, 116);
+  x.textAlign = "left"; x.textBaseline = "top"; x.fillStyle = "#22252B";
+  x.font = "bold 62px system-ui, -apple-system, sans-serif";
+  x.fillText((info.tonArt !== "kein" ? "🔊 " : "") + (info.titel || "Info"), 160, 80);
+  x.font = "42px system-ui, -apple-system, sans-serif";
+  textUmbruch(x, info.text || "", c.width - 120).slice(0, 13).forEach((z, i) => x.fillText(z, 60, 200 + i * 52));
+  x.fillStyle = "#8A8F9C"; x.font = "32px system-ui, sans-serif";
+  x.fillText("Tippen zum Schließen", 60, c.height - 60);
+  return c;
+}
+function infoLage() {
+  return {
+    p: [-(tierMasse.b / 2) - 0.08, 0.07, tierMasse.t / 2],
+    versatz: [-(INFO_PANEL.b / 2) + 0.06, INFO_PANEL.h / 2 + 0.06, 0.01],
+  };
 }
 const canvasZuBytes = (c) => new Promise((ok) => c.toBlob(async (b) => ok(new Uint8Array(await b.arrayBuffer())), "image/png"));
 
@@ -579,22 +641,58 @@ let tierGruppe = null, tierDaten = null, tierHoehe = 0.3;
 const notizGruppe = new THREE.Group(); szene.add(notizGruppe);
 let klickbar = [];
 
-function notizPosition(i) {
-  const n = notizen.length;
-  return [(i - (n - 1) / 2) * 0.26, tierHoehe + 0.08, 0];
+function panelLage(punkt) {
+  let dx = punkt.n[0], dz = punkt.n[2];
+  const l = Math.hypot(dx, dz);
+  if (l < 0.35) { dx = 0; dz = 1; } else { dx /= l; dz /= l; }
+  return { versatz: [dx * 0.05, PANEL.h / 2 + 0.035, dz * 0.05], drehung: Math.atan2(dx, dz) };
+}
+function trefferAufTier(start, richtung) {
+  if (!tierGruppe) return null;
+  tierGruppe.updateMatrixWorld(true);
+  const ray = new THREE.Raycaster(start, richtung.clone().normalize());
+  const t = ray.intersectObject(tierGruppe, true)[0];
+  if (!t) return null;
+  const n = t.face ? t.face.normal.clone().transformDirection(t.object.matrixWorld) : new THREE.Vector3(0, 0, 1);
+  if (n.dot(ray.ray.direction) > 0) n.negate();
+  return { p: t.point.toArray(), n: n.toArray() };
+}
+function standardPunkte() {
+  notizen.forEach((n, i) => {
+    if (n.punkt) return;
+    const y = tierHoehe * Math.max(0.2, 0.75 - 0.18 * i);
+    n.punkt = trefferAufTier(new THREE.Vector3(0, y, 3), new THREE.Vector3(0, 0, -1))
+      || trefferAufTier(new THREE.Vector3(0, 3, 0), new THREE.Vector3(0, -1, 0))
+      || { p: [0, tierHoehe, 0], n: [0, 1, 0] };
+  });
 }
 function vorschauNotizen() {
   notizGruppe.clear(); klickbar = [];
   notizen.forEach((n, i) => {
-    const g = new THREE.Group(); g.position.fromArray(notizPosition(i));
-    const tex = (c) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
-    const pin = new THREE.Mesh(new THREE.PlaneGeometry(PIN.b, PIN.h), new THREE.MeshBasicMaterial({ map: tex(zeichnePin(n)), side: THREE.DoubleSide }));
-    const panel = new THREE.Mesh(new THREE.PlaneGeometry(PANEL.b, PANEL.h), new THREE.MeshBasicMaterial({ map: tex(zeichnePanel(n)), side: THREE.DoubleSide }));
-    panel.position.set(0, PANEL.h / 2 + PIN.h / 2 + 0.01, 0.01); panel.visible = false;
+    if (!n.punkt) return;
+    const g = new THREE.Group(); g.position.fromArray(n.punkt.p);
+    const tex = new THREE.CanvasTexture(zeichnePanel(n)); tex.colorSpace = THREE.SRGBColorSpace;
+    const farbe = new THREE.Color(FARBEN[n.farbe]);
+    const pin = new THREE.Mesh(new THREE.SphereGeometry(PUNKT_R, 20, 12), new THREE.MeshStandardMaterial({ color: farbe, emissive: farbe.clone().multiplyScalar(0.55), roughness: 0.4 }));
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(PANEL.b, PANEL.h), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+    const lage = panelLage(n.punkt);
+    panel.position.fromArray(lage.versatz); panel.rotation.y = lage.drehung; panel.visible = false;
     pin.userData = { art: "pin", i, panel }; panel.userData = { art: "panel", i };
     g.add(pin, panel); notizGruppe.add(g); klickbar.push(pin, panel);
   });
+  if (info.an && tierGruppe) {
+    const lage = infoLage();
+    const g = new THREE.Group(); g.position.fromArray(lage.p);
+    const t1 = new THREE.CanvasTexture(zeichneInfoSchild()); t1.colorSpace = THREE.SRGBColorSpace;
+    const t2 = new THREE.CanvasTexture(zeichneInfoPanel()); t2.colorSpace = THREE.SRGBColorSpace;
+    const schild = new THREE.Mesh(new THREE.PlaneGeometry(INFO_SCHILD.b, INFO_SCHILD.h), new THREE.MeshBasicMaterial({ map: t1, alphaTest: 0.5, side: THREE.DoubleSide }));
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(INFO_PANEL.b, INFO_PANEL.h), new THREE.MeshBasicMaterial({ map: t2, side: THREE.DoubleSide }));
+    panel.position.fromArray(lage.versatz); panel.visible = false;
+    schild.userData = { art: "pin", i: "info", panel }; panel.userData = { art: "panel", i: "info" };
+    g.add(schild, panel); notizGruppe.add(g); klickbar.push(schild, panel);
+  }
 }
+let platzieren = null; // Index der Notiz, die gerade gesetzt wird
 let druck = null;
 renderer.domElement.addEventListener("pointerdown", (e) => { druck = [e.clientX, e.clientY]; });
 renderer.domElement.addEventListener("pointerup", (e) => {
@@ -602,6 +700,13 @@ renderer.domElement.addEventListener("pointerup", (e) => {
   const r = renderer.domElement.getBoundingClientRect();
   const ray = new THREE.Raycaster();
   ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), kamera);
+  if (platzieren !== null) {
+    const p = trefferAufTier(ray.ray.origin, ray.ray.direction);
+    if (!p) { status("Daneben – bitte direkt auf das Tier tippen."); return; }
+    notizen[platzieren].punkt = p; platzieren = null;
+    zeigeListe(); vorschauNotizen(); neuBauen();
+    return;
+  }
   const treffer = ray.intersectObjects(klickbar.filter((o) => o.visible), false)[0];
   if (!treffer) return;
   const d = treffer.object.userData;
@@ -633,7 +738,9 @@ async function ladeModell(quelle) {
   const m = new THREE.Matrix4().fromArray(tierDaten.matrix);
   tierGruppe.applyMatrix4(m);
   szene.add(tierGruppe);
-  steuerung.target.set(0, (tierHoehe + 0.2) / 2, 0);
+  steuerung.target.set(0, tierHoehe * 0.6, 0);
+  notizen.forEach((n) => { n.punkt = null; });
+  standardPunkte();
   vorschauNotizen();
 }
 
@@ -688,6 +795,7 @@ async function extrahiere(wurzel) {
   const s = ZIELGROESSE / Math.max(groesse.x, groesse.y, groesse.z);
   const mitte = new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5);
   tierHoehe = groesse.y * s;
+  tierMasse = { b: groesse.x * s, t: groesse.z * s };
   const matrix = [s, 0, 0, 0, 0, s, 0, 0, 0, 0, s, 0, -mitte.x * s, -min.y * s, -mitte.z * s, 1];
   return { meshes, materials: materialien, matrix, texturen };
 }
@@ -695,7 +803,7 @@ async function extrahiere(wurzel) {
 // ---------- Töne ----------
 const dingCache = {};
 function tonDatei(i) {
-  const n = notizen[i];
+  const n = i === "info" ? info : notizen[i];
   if (n.tonArt === "kein") return null;
   if (n.tonArt === "aufnahme" && n.aufnahme) return n.aufnahme;
   if (!dingCache[n.frequenz]) dingCache[n.frequenz] = { daten: dingWAV(n.frequenz), mime: "audio/wav", endung: "wav" };
@@ -709,6 +817,7 @@ function endungFuer(mime) {
 }
 let rekorder = null;
 async function aufnahme(i, knopf) {
+  const ziel = i === "info" ? info : notizen[i];
   if (rekorder) { rekorder.stop(); return; }
   try {
     const strom = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -720,9 +829,9 @@ async function aufnahme(i, knopf) {
       strom.getTracks().forEach((t) => t.stop());
       const mime = rekorder.mimeType || typ || "audio/mp4";
       const blob = new Blob(stuecke, { type: mime });
-      notizen[i].aufnahme = { daten: new Uint8Array(await blob.arrayBuffer()), mime, endung: endungFuer(mime) };
-      notizen[i].tonArt = "aufnahme";
-      rekorder = null; zeigeListe(); neuBauen();
+      ziel.aufnahme = { daten: new Uint8Array(await blob.arrayBuffer()), mime, endung: endungFuer(mime) };
+      ziel.tonArt = "aufnahme";
+      rekorder = null; zeigeListe(); zeigeInfo(); vorschauNotizen(); neuBauen();
     };
     rekorder.start(); knopf.textContent = "⏹ Stopp"; knopf.classList.add("aufnahme");
   } catch (e) {
@@ -736,7 +845,7 @@ function zeigeListe() {
   notizen.forEach((n, i) => {
     const el = document.createElement("div"); el.className = "notiz";
     el.innerHTML = `
-      <div class="notiz-kopf"><span>Notiz ${i + 1}</span>${notizen.length > 1 ? '<button data-weg>Entfernen</button>' : ""}</div>
+      <div class="notiz-kopf"><span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${FARBEN[n.farbe]};vertical-align:-1px"></span> Notiz ${i + 1}</span>${notizen.length > 1 ? '<button data-weg>Entfernen</button>' : ""}</div>
       <label>Überschrift</label><input type="text" data-feld="titel" maxlength="22">
       <label>Text</label><textarea data-feld="text" maxlength="260"></textarea>
       <label>Farbe</label><div class="farben">${FARBEN.map((f, k) => `<button data-farbe="${k}" class="${k === n.farbe ? "aktiv" : ""}" style="background:${f}" aria-label="Farbe ${k + 1}"></button>`).join("")}</div>
@@ -746,6 +855,7 @@ function zeigeListe() {
         <option value="aufnahme" ${n.aufnahme ? "" : "disabled"}>Eigene Aufnahme${n.aufnahme ? ` (${n.aufnahme.endung})` : " – erst aufnehmen"}</option>
         <option value="kein">Kein Ton</option>
       </select>
+      <div class="reihe"><button data-setzen class="${platzieren === i ? "haupt" : ""}">📍 ${platzieren === i ? "Jetzt aufs Tier tippen …" : "Auf das Tier setzen"}</button></div>
       <div class="reihe"><button data-auf>🎙 Aufnehmen</button><button data-hoer>▶ Anhören</button></div>
       ${n.aufnahme && n.aufnahme.endung === "webm" ? '<div class="warnung">Dieser Browser nimmt im WebM-Format auf, das Apple in AR nicht abspielt. Bitte direkt am iPad aufnehmen.</div>' : ""}`;
     el.querySelector('[data-feld="titel"]').value = n.titel;
@@ -755,6 +865,11 @@ function zeigeListe() {
       n[f.dataset.feld] = f.value; vorschauNotizen(); neuBauenSpaeter();
     }));
     el.querySelectorAll("[data-farbe]").forEach((b) => b.addEventListener("click", () => { n.farbe = +b.dataset.farbe; zeigeListe(); vorschauNotizen(); neuBauen(); }));
+    el.querySelector("[data-setzen]").addEventListener("click", () => {
+      platzieren = platzieren === i ? null : i; zeigeListe();
+      if (platzieren !== null) { status(`Tippe in der Vorschau auf die Stelle am Tier für Notiz ${i + 1}.`); $("ansicht").scrollIntoView({ behavior: "smooth", block: "center" }); }
+      else status("Platzieren abgebrochen.");
+    });
     el.querySelector("[data-auf]").addEventListener("click", (e) => aufnahme(i, e.currentTarget));
     el.querySelector("[data-hoer]").addEventListener("click", () => spieleTon(i));
     el.querySelector("[data-weg]")?.addEventListener("click", () => { notizen.splice(i, 1); zeigeListe(); vorschauNotizen(); neuBauen(); });
@@ -762,9 +877,36 @@ function zeigeListe() {
   });
   $("notizNeu").disabled = notizen.length >= 4;
 }
+function zeigeInfo() {
+  $("infoAn").checked = info.an; $("infoTitel").value = info.titel; $("infoText").value = info.text;
+  const opt = $("infoTon").querySelector('[value="aufnahme"]');
+  opt.disabled = !info.aufnahme; opt.textContent = info.aufnahme ? `Eigene Aufnahme (${info.aufnahme.endung})` : "Eigene Aufnahme – erst aufnehmen";
+  $("infoTon").value = info.tonArt;
+  $("infoAuf").textContent = "🎙 Aufnehmen"; $("infoAuf").classList.remove("aufnahme");
+  $("infoKnopf").hidden = !info.an;
+  if (!$("infoFenster").hidden) fuelleInfoFenster();
+}
+function fuelleInfoFenster() {
+  const f = $("infoFenster"); f.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = (info.tonArt !== "kein" ? "🔊 " : "") + (info.titel || "Info");
+  const t = document.createElement("p"); t.textContent = info.text;
+  const z = document.createElement("button"); z.textContent = "Schließen"; z.onclick = () => { f.hidden = true; };
+  f.append(h, t, z);
+}
+$("infoAn").addEventListener("change", (e) => { info.an = e.target.checked; zeigeInfo(); vorschauNotizen(); neuBauen(); });
+["infoTitel", "infoText", "infoTon"].forEach((id) => $(id).addEventListener("input", (e) => {
+  info[{ infoTitel: "titel", infoText: "text", infoTon: "tonArt" }[id]] = e.target.value;
+  zeigeInfo(); vorschauNotizen(); neuBauenSpaeter();
+}));
+$("infoAuf").addEventListener("click", (e) => aufnahme("info", e.currentTarget));
+$("infoHoer").addEventListener("click", () => spieleTon("info"));
+$("infoKnopf").addEventListener("click", () => {
+  const f = $("infoFenster");
+  if (f.hidden) { fuelleInfoFenster(); f.hidden = false; spieleTon("info"); } else f.hidden = true;
+});
 $("notizNeu").addEventListener("click", () => {
-  notizen.push({ titel: `Notiz ${notizen.length + 1}`, text: "Neuer Text", farbe: notizen.length % FARBEN.length, tonArt: "standard", aufnahme: null, frequenz: [880, 660, 990, 550][notizen.length % 4] });
-  zeigeListe(); vorschauNotizen(); neuBauen();
+  notizen.push({ titel: `Notiz ${notizen.length + 1}`, text: "Neuer Text", farbe: notizen.length % FARBEN.length, tonArt: "standard", aufnahme: null, frequenz: [880, 660, 990, 550][notizen.length % 4], punkt: null });
+  standardPunkte(); zeigeListe(); vorschauNotizen(); neuBauen();
 });
 
 // ---------- USDZ bauen ----------
@@ -779,13 +921,33 @@ async function neuBauen() {
   const szeneDaten = { tier: tierDaten, notizen: [] };
   for (let i = 0; i < notizen.length; i++) {
     const n = notizen[i];
-    const pinName = `textures/pin_${i}.png`, panelName = `textures/panel_${i}.png`;
-    dateien.push({ name: pinName, data: await canvasZuBytes(zeichnePin(n)) });
+    if (!n.punkt) continue;
+    const panelName = `textures/panel_${szeneDaten.notizen.length}.png`;
     dateien.push({ name: panelName, data: await canvasZuBytes(zeichnePanel(n)) });
     const t = tonDatei(i);
     let ton = null;
-    if (t && t.endung !== "webm") { ton = `audio/notiz_${i}.${t.endung}`; dateien.push({ name: ton, data: t.daten }); }
-    szeneDaten.notizen.push({ position: notizPosition(i), pin: { ...PIN, textur: pinName }, panel: { ...PANEL, textur: panelName }, ton });
+    if (t && t.endung !== "webm") { ton = `audio/notiz_${szeneDaten.notizen.length}.${t.endung}`; dateien.push({ name: ton, data: t.daten }); }
+    const lage = panelLage(n.punkt);
+    szeneDaten.notizen.push({
+      position: n.punkt.p,
+      punkt: { radius: PUNKT_R, farbe: new THREE.Color(FARBEN[n.farbe]).toArray() },
+      panel: { ...PANEL, textur: panelName, versatz: lage.versatz, drehungY: lage.drehung * 180 / Math.PI },
+      ton,
+    });
+  }
+  if (info.an) {
+    const k = szeneDaten.notizen.length, lage = infoLage(), t = tonDatei("info");
+    const schildName = "textures/info_schild.png", panelName = "textures/info_panel.png";
+    dateien.push({ name: schildName, data: await canvasZuBytes(zeichneInfoSchild()) });
+    dateien.push({ name: panelName, data: await canvasZuBytes(zeichneInfoPanel()) });
+    let ton = null;
+    if (t && t.endung !== "webm") { ton = `audio/info.${t.endung}`; dateien.push({ name: ton, data: t.daten }); }
+    szeneDaten.notizen.push({
+      position: lage.p,
+      punkt: { karte: { ...INFO_SCHILD, textur: schildName } },
+      panel: { ...INFO_PANEL, textur: panelName, versatz: lage.versatz, drehungY: 0 },
+      ton,
+    });
   }
   if (nr !== bauNr) return;
   const usda = baueUSDA(szeneDaten);
@@ -817,7 +979,7 @@ $("glbDatei").addEventListener("change", async (e) => {
   try { await ladeModell(await f.arrayBuffer()); neuBauen(); }
   catch (err) { status("Diese Datei konnte nicht gelesen werden: " + err.message); }
 });
-zeigeListe();
+zeigeListe(); zeigeInfo();
 ladeModell(MODELLE.ente).then(neuBauen).catch((err) => status("Fehler beim Laden: " + err.message));
 </script>
 </body>
