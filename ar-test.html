@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>AR Creator-Labor – Machbarkeitstest</title>
+<style>
+  :root{--bg:#F6F4EF;--text:#22252B;--grau:#5B6070;--linie:#DDD8CC;--tuerkis:#1FA2A6}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+  .streifen{display:flex;height:8px}.streifen i{flex:1}
+  header{padding:18px 20px 6px;max-width:1100px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px} header p{margin:0;color:var(--grau)}
+  main{max-width:1100px;margin:0 auto;padding:12px 20px 40px;display:grid;grid-template-columns:1.2fr 1fr;gap:18px}
+  @media (max-width:820px){main{grid-template-columns:1fr}}
+  .karte{background:#fff;border-radius:20px;box-shadow:0 4px 18px rgba(30,30,50,.10);padding:18px}
+  h2{font-size:18px;margin:0 0 10px}
+  #ansicht{width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#EAE6DC;position:relative;touch-action:none}
+  #ansicht canvas{display:block;width:100%;height:100%}
+  .hinweis{font-size:14px;color:var(--grau);margin:8px 0 0}
+  label{font-size:14px;color:var(--grau);display:block;margin:8px 0 4px}
+  input[type=text],textarea,select{width:100%;font:inherit;font-size:16px;padding:9px 11px;border:2px solid var(--linie);border-radius:12px;background:#fff;color:var(--text)}
+  textarea{min-height:64px;resize:vertical}
+  button,.knopf{font:inherit;font-size:15px;font-weight:700;border:0;border-radius:999px;padding:9px 16px;cursor:pointer;background:#EDEAE2;color:var(--text);text-decoration:none;display:inline-block}
+  button.haupt,.knopf.haupt{background:var(--tuerkis);color:#fff}
+  button.aufnahme{background:#E04F7A;color:#fff}
+  .reihe{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  .notiz{border:2px solid var(--linie);border-radius:16px;padding:12px;margin-bottom:12px}
+  .notiz-kopf{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+  .farben{display:flex;gap:6px;margin-top:4px}
+  .farben button{width:30px;height:30px;padding:0;border-radius:50%;border:3px solid transparent}
+  .farben button.aktiv{border-color:var(--text)}
+  #arBereich{text-align:center;margin-top:12px}
+  #arLink img{max-width:320px;width:100%;height:auto}
+  #status{font-size:14px;color:var(--grau);margin-top:6px;min-height:20px}
+  .checkliste label{display:flex;gap:10px;align-items:flex-start;color:var(--text);font-size:15px;margin:8px 0}
+  .checkliste input{width:20px;height:20px;flex:none;margin-top:1px}
+  .warnung{background:#FFF4E5;border-radius:12px;padding:10px 12px;font-size:14px;margin-top:10px}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div class="streifen"><i style="background:#F28C28"></i><i style="background:#1FA2A6"></i><i style="background:#7B5CC9"></i><i style="background:#3FA34D"></i><i style="background:#2F6FD6"></i><i style="background:#E04F7A"></i></div>
+<header>
+  <h1>AR Creator-Labor – Machbarkeitstest</h1>
+  <p>Prüft auf dem iPad, ob Notizen im Raum antippbar sind und eigene Töne abspielen.</p>
+</header>
+
+<main>
+  <section class="karte">
+    <h2>1 · Vorschau</h2>
+    <div id="ansicht"></div>
+    <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf eine farbige Notiz-Karte: Der Text öffnet sich und der Ton spielt. Tippe auf den Text, um ihn zu schließen.</p>
+
+    <label for="modellWahl">Modell</label>
+    <select id="modellWahl">
+      <option value="ente">Testente (Khronos-Beispielmodell)</option>
+      <option value="fuchs">Testfuchs mit Skelett (wie animierte Tiere)</option>
+      <option value="eigen">Eigene GLB-Datei wählen …</option>
+    </select>
+    <input type="file" id="glbDatei" accept=".glb,model/gltf-binary" hidden>
+
+    <div id="arBereich">
+      <a id="arLink" rel="ar" href="#" hidden><img id="arBild" alt="Im Raum ansehen"></a>
+      <a id="download" class="knopf haupt" download="creator-labor-test.usdz" hidden>AR-Datei (USDZ) herunterladen</a>
+      <div id="status">Lade …</div>
+      <div id="keinAR" class="warnung" hidden>Dieses Gerät öffnet keine AR-Ansicht von Apple. Bitte die Seite auf dem iPad in Safari öffnen. Hier kannst du die Datei nur herunterladen.</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="karte" style="margin-bottom:18px">
+      <h2>2 · Notizen</h2>
+      <div id="notizListe"></div>
+      <div class="reihe"><button id="notizNeu">+ Notiz hinzufügen</button></div>
+    </div>
+
+    <div class="karte checkliste">
+      <h2>3 · Test auf dem iPad</h2>
+      <p class="hinweis" style="margin-top:0">Oben auf „Im Raum ansehen“ tippen, das Tier auf den Boden oder Tisch stellen und dann prüfen:</p>
+      <label><input type="checkbox"> Das Tier erscheint im Raum.</label>
+      <label><input type="checkbox"> Über dem Tier sind die farbigen Notiz-Karten zu sehen, die Textkarten sind noch versteckt.</label>
+      <label><input type="checkbox"> Antippen einer Notiz-Karte öffnet den Text.</label>
+      <label><input type="checkbox"> Beim Antippen ist der Ton zu hören (Lautlos-Schalter aus, Lautstärke an).</label>
+      <label><input type="checkbox"> Antippen des Texts schließt ihn wieder.</label>
+      <label><input type="checkbox"> Eine eigene Aufnahme (🎙) wird in AR abgespielt.</label>
+      <p class="hinweis">Bitte melde Claude, welche Punkte klappen und welche nicht.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+// ===== Kern: USDZ mit antippbaren Notizen und Ton für AR Quick Look (iPad/iPhone) =====
+// Ohne Abhängigkeiten, damit er auch in Node getestet werden kann.
+
+const CRC_TABELLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(daten) {
+  let c = 0xffffffff;
+  for (let i = 0; i < daten.length; i++) c = CRC_TABELLE[(c ^ daten[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+
+// USDZ = unkomprimiertes ZIP, Dateidaten müssen auf 64 Byte ausgerichtet beginnen.
+// Die .usda-Datei muss die erste Datei sein.
+function zipUSDZ(dateien) {
+  const enc = new TextEncoder();
+  const teile = [];
+  const zentral = [];
+  let offset = 0;
+  for (const d of dateien) {
+    const name = enc.encode(d.name);
+    const crc = crc32(d.data);
+    let extraLen = (64 - ((offset + 30 + name.length) % 64)) % 64;
+    if (extraLen > 0 && extraLen < 4) extraLen += 64; // Extra-Feld braucht mind. 4 Byte Kopf
+    const kopf = new Uint8Array(30 + name.length + extraLen);
+    const v = new DataView(kopf.buffer);
+    v.setUint32(0, 0x04034b50, true);
+    v.setUint16(4, 20, true);
+    v.setUint16(6, 0, true);
+    v.setUint16(8, 0, true); // gespeichert, nicht komprimiert
+    v.setUint16(10, 0, true);
+    v.setUint16(12, 0x21, true);
+    v.setUint32(14, crc, true);
+    v.setUint32(18, d.data.length, true);
+    v.setUint32(22, d.data.length, true);
+    v.setUint16(26, name.length, true);
+    v.setUint16(28, extraLen, true);
+    kopf.set(name, 30);
+    if (extraLen) {
+      v.setUint16(30 + name.length, 0x1986, true); // frei gewählte Kennung fürs Auffüllen
+      v.setUint16(32 + name.length, extraLen - 4, true);
+    }
+    zentral.push({ name, crc, groesse: d.data.length, offset });
+    teile.push(kopf, d.data);
+    offset += kopf.length + d.data.length;
+  }
+  const zStart = offset;
+  for (const z of zentral) {
+    const e = new Uint8Array(46 + z.name.length);
+    const v = new DataView(e.buffer);
+    v.setUint32(0, 0x02014b50, true);
+    v.setUint16(4, 20, true);
+    v.setUint16(6, 20, true);
+    v.setUint16(12, 0, true);
+    v.setUint16(14, 0x21, true);
+    v.setUint32(16, z.crc, true);
+    v.setUint32(20, z.groesse, true);
+    v.setUint32(24, z.groesse, true);
+    v.setUint16(28, z.name.length, true);
+    v.setUint32(42, z.offset, true);
+    e.set(z.name, 46);
+    teile.push(e);
+    offset += e.length;
+  }
+  const ende = new Uint8Array(22);
+  const v = new DataView(ende.buffer);
+  v.setUint32(0, 0x06054b50, true);
+  v.setUint16(8, zentral.length, true);
+  v.setUint16(10, zentral.length, true);
+  v.setUint32(12, offset - zStart, true);
+  v.setUint32(16, zStart, true);
+  teile.push(ende);
+  const gesamt = new Uint8Array(teile.reduce((s, t) => s + t.length, 0));
+  let p = 0;
+  for (const t of teile) { gesamt.set(t, p); p += t.length; }
+  return gesamt;
+}
+
+// Kurzer „Ding“-Ton als WAV, damit der Test auch ohne eigene Aufnahme funktioniert
+function dingWAV(frequenz = 880, dauer = 0.7, rate = 44100) {
+  const n = Math.floor(dauer * rate);
+  const buf = new ArrayBuffer(44 + n * 2);
+  const v = new DataView(buf);
+  const str = (o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+  str(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); str(8, "WAVE");
+  str(12, "fmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  str(36, "data"); v.setUint32(40, n * 2, true);
+  for (let i = 0; i < n; i++) {
+    const t = i / rate;
+    const huelle = Math.min(1, t * 200) * Math.exp(-t * 5);
+    const s = (Math.sin(2 * Math.PI * frequenz * t) + 0.4 * Math.sin(2 * Math.PI * frequenz * 2 * t)) * 0.45 * huelle;
+    v.setInt16(44 + i * 2, Math.max(-1, Math.min(1, s)) * 32767, true);
+  }
+  return new Uint8Array(buf);
+}
+
+const zahl = (x) => {
+  const s = (Math.abs(x) < 1e-7 ? 0 : x).toFixed(5);
+  return s.replace(/\.?0+$/, "") || "0";
+};
+
+function meshUSDA(name, m, materialPfad, einzug, doppelseitig) {
+  const pts = [], nrm = [], st = [];
+  for (let i = 0; i < m.points.length; i += 3) pts.push(`(${zahl(m.points[i])}, ${zahl(m.points[i + 1])}, ${zahl(m.points[i + 2])})`);
+  if (m.normals) for (let i = 0; i < m.normals.length; i += 3) nrm.push(`(${zahl(m.normals[i])}, ${zahl(m.normals[i + 1])}, ${zahl(m.normals[i + 2])})`);
+  if (m.uvs) for (let i = 0; i < m.uvs.length; i += 2) st.push(`(${zahl(m.uvs[i])}, ${zahl(1 - m.uvs[i + 1])})`);
+  const anzahlFlaechen = m.indices.length / 3;
+  let min = [Infinity, Infinity, Infinity], max = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < m.points.length; i += 3) for (let k = 0; k < 3; k++) {
+    min[k] = Math.min(min[k], m.points[i + k]); max[k] = Math.max(max[k], m.points[i + k]);
+  }
+  const e = einzug;
+  return `${e}def Mesh "${name}" (
+${e}    prepend apiSchemas = ["MaterialBindingAPI"]
+${e})
+${e}{
+${e}    uniform bool doubleSided = ${doppelseitig ? 1 : 0}
+${e}    float3[] extent = [(${min.map(zahl).join(", ")}), (${max.map(zahl).join(", ")})]
+${e}    int[] faceVertexCounts = [${new Array(anzahlFlaechen).fill(3).join(", ")}]
+${e}    int[] faceVertexIndices = [${Array.from(m.indices).join(", ")}]
+${e}    rel material:binding = <${materialPfad}>
+${nrm.length ? `${e}    normal3f[] normals = [${nrm.join(", ")}] (
+${e}        interpolation = "vertex"
+${e}    )
+` : ""}${e}    point3f[] points = [${pts.join(", ")}]
+${st.length ? `${e}    texCoord2f[] primvars:st = [${st.join(", ")}] (
+${e}        interpolation = "vertex"
+${e}    )
+` : ""}${e}    uniform token subdivisionScheme = "none"
+${e}}
+`;
+}
+
+function materialUSDA(name, mat, pfad, einzug) {
+  const e = einzug;
+  const c = mat.color || [0.8, 0.8, 0.8];
+  const deckkraft = mat.opacity == null ? 1 : mat.opacity;
+  let s = `${e}def Material "${name}"
+${e}{
+${e}    token outputs:surface.connect = <${pfad}/Oberflaeche.outputs:surface>
+
+${e}    def Shader "Oberflaeche"
+${e}    {
+${e}        uniform token info:id = "UsdPreviewSurface"
+`;
+  if (mat.texture) s += `${e}        color3f inputs:diffuseColor.connect = <${pfad}/Bild.outputs:rgb>
+`;
+  else s += `${e}        color3f inputs:diffuseColor = (${c.map(zahl).join(", ")})
+`;
+  if (mat.emissive) s += `${e}        color3f inputs:emissiveColor.connect = <${pfad}/Bild.outputs:rgb>
+`;
+  s += `${e}        float inputs:metallic = 0
+${e}        float inputs:opacity = ${zahl(deckkraft)}
+${e}        float inputs:roughness = ${zahl(mat.roughness == null ? 0.8 : mat.roughness)}
+${e}        token outputs:surface
+${e}    }
+`;
+  if (mat.texture) s += `
+${e}    def Shader "UVLeser"
+${e}    {
+${e}        uniform token info:id = "UsdPrimvarReader_float2"
+${e}        string inputs:varname = "st"
+${e}        float2 outputs:result
+${e}    }
+
+${e}    def Shader "Bild"
+${e}    {
+${e}        uniform token info:id = "UsdUVTexture"
+${e}        asset inputs:file = @${mat.texture}@
+${e}        float4 inputs:scale = (${mat.texture && mat.color ? c.map(zahl).join(", ") : "1, 1, 1"}, 1)
+${e}        token inputs:sourceColorSpace = "sRGB"
+${e}        float2 inputs:st.connect = <${pfad}/UVLeser.outputs:result>
+${e}        token inputs:wrapS = "repeat"
+${e}        token inputs:wrapT = "repeat"
+${e}        float outputs:a
+${e}        float3 outputs:rgb
+${e}    }
+`;
+  s += `${e}}
+`;
+  return s;
+}
+
+function kartenMesh(b, h) {
+  const x = b / 2, y = h / 2;
+  return {
+    points: [-x, -y, 0, x, -y, 0, x, y, 0, -x, y, 0],
+    normals: [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1],
+    uvs: [0, 1, 1, 1, 1, 0, 0, 0], // wird beim Schreiben auf USD-Konvention (v nach oben) gedreht
+    indices: [0, 1, 2, 0, 2, 3],
+  };
+}
+
+function sichtbarkeitsAktion(name, typ, ziele, einzug) {
+  const e = einzug;
+  return `${e}def Preliminary_Action "${name}"
+${e}{
+${e}    rel affectedObjects = [${ziele.map((z) => `<${z}>`).join(", ")}]
+${e}    double duration = 0
+${e}    token easeType = "none"
+${e}    token info:id = "Visibility"
+${e}    token motionType = "none"
+${e}    double moveDistance = 0
+${e}    token style = "basic"
+${e}    token type = "${typ}"
+${e}}
+`;
+}
+
+function tonAktion(name, ziel, datei, einzug) {
+  const e = einzug;
+  return `${e}def Preliminary_Action "${name}"
+${e}{
+${e}    rel affectedObjects = <${ziel}>
+${e}    asset audio = @${datei}@
+${e}    token auralMode = "nonSpatial"
+${e}    double gain = 1
+${e}    token info:id = "Audio"
+${e}    token multiplePerformOperation = "allow"
+${e}    token type = "play"
+${e}}
+`;
+}
+
+/**
+ * szene = {
+ *   tier: { meshes:[{points,normals,uvs,indices,material}], materials:[{color,texture,opacity}], matrix:[16] (Spalten wie three.js) },
+ *   notizen: [{ position:[x,y,z], pin:{b,h,textur}, panel:{b,h,textur}, ton: "audio/…" | null }]
+ * }
+ */
+function baueUSDA(szene) {
+  const S = "/Root/Scenes/Szene";
+  const M = `${S}/Materialien`;
+  let materialien = "";
+  let inhalt = "";
+  const I = "            ";
+
+  // Tier
+  const tm = szene.tier.matrix; // spaltenweise (three.js) – entspricht zeilenweise in USD
+  const zeilen = [0, 1, 2, 3].map((r) => `(${[0, 1, 2, 3].map((c) => zahl(tm[r * 4 + c])).join(", ")})`).join(", ");
+  inhalt += `${I}def Xform "Tier"
+${I}{
+${I}    matrix4d xformOp:transform = ( ${zeilen} )
+${I}    uniform token[] xformOpOrder = ["xformOp:transform"]
+
+`;
+  szene.tier.materials.forEach((mat, i) => { materialien += materialUSDA(`TierMat_${i}`, mat, `${M}/TierMat_${i}`, I + "    "); });
+  szene.tier.meshes.forEach((m, i) => { inhalt += meshUSDA(`Teil_${i}`, m, `${M}/TierMat_${m.material}`, I + "    ", false); });
+  inhalt += `${I}}
+
+`;
+
+  // Notizen
+  const panels = [];
+  szene.notizen.forEach((n, i) => {
+    const N = `${S}/Notiz_${i}`;
+    panels.push(`${N}/Panel`);
+    materialien += materialUSDA(`PinMat_${i}`, { texture: n.pin.textur, emissive: true, roughness: 1 }, `${M}/PinMat_${i}`, I + "    ");
+    materialien += materialUSDA(`PanelMat_${i}`, { texture: n.panel.textur, emissive: true, roughness: 1 }, `${M}/PanelMat_${i}`, I + "    ");
+    inhalt += `${I}def Xform "Notiz_${i}"
+${I}{
+${I}    double3 xformOp:translate = (${n.position.map(zahl).join(", ")})
+${I}    uniform token[] xformOpOrder = ["xformOp:translate"]
+
+${I}    def Xform "Pin"
+${I}    {
+${meshUSDA("Karte", kartenMesh(n.pin.b, n.pin.h), `${M}/PinMat_${i}`, I + "        ", true)}${I}    }
+
+${I}    def Xform "Panel"
+${I}    {
+${I}        double3 xformOp:translate = (0, ${zahl(n.panel.h / 2 + n.pin.h / 2 + 0.01)}, 0.01)
+${I}        uniform token[] xformOpOrder = ["xformOp:translate"]
+${meshUSDA("Karte", kartenMesh(n.panel.b, n.panel.h), `${M}/PanelMat_${i}`, I + "        ", true)}${I}    }
+${I}}
+
+`;
+  });
+
+  // Verhalten (Apple „Preliminary“-Schema, wie es Reality Composer schreibt)
+  let verhalten = "";
+  if (panels.length) {
+    const B = `${S}/Start_Verstecken`;
+    verhalten += `${I}def Preliminary_Behavior "Start_Verstecken"
+${I}{
+${I}    rel actions = <${B}/Aktion>
+${I}    uniform bool exclusive = 0
+${I}    rel triggers = <${B}/Ausloeser>
+
+${I}    def Preliminary_Trigger "Ausloeser"
+${I}    {
+${I}        token info:id = "SceneTransition"
+${I}        token type = "enter"
+${I}    }
+
+${sichtbarkeitsAktion("Aktion", "hide", panels, I + "    ")}${I}}
+
+`;
+  }
+  szene.notizen.forEach((n, i) => {
+    const N = `${S}/Notiz_${i}`;
+    const B = `${S}/Notiz_${i}_Oeffnen`;
+    const aktionen = [`${B}/Gruppe/Zeigen`];
+    if (n.ton) aktionen.push(`${B}/Gruppe/Ton`);
+    verhalten += `${I}def Preliminary_Behavior "Notiz_${i}_Oeffnen"
+${I}{
+${I}    rel actions = <${B}/Gruppe>
+${I}    uniform bool exclusive = 0
+${I}    rel triggers = <${B}/Ausloeser>
+
+${I}    def Preliminary_Trigger "Ausloeser"
+${I}    {
+${I}        rel affectedObjects = <${N}/Pin>
+${I}        token info:id = "TapGesture"
+${I}    }
+
+${I}    def Preliminary_Action "Gruppe"
+${I}    {
+${I}        rel actions = [${aktionen.map((a) => `<${a}>`).join(", ")}]
+${I}        token info:id = "Group"
+${I}        bool loops = 0
+${I}        int performCount = 1
+${I}        token type = "parallel"
+
+${sichtbarkeitsAktion("Zeigen", "show", [`${N}/Panel`], I + "        ")}${n.ton ? tonAktion("Ton", N, n.ton, I + "        ") : ""}${I}    }
+${I}}
+
+`;
+    const B2 = `${S}/Notiz_${i}_Schliessen`;
+    verhalten += `${I}def Preliminary_Behavior "Notiz_${i}_Schliessen"
+${I}{
+${I}    rel actions = <${B2}/Aktion>
+${I}    uniform bool exclusive = 0
+${I}    rel triggers = <${B2}/Ausloeser>
+
+${I}    def Preliminary_Trigger "Ausloeser"
+${I}    {
+${I}        rel affectedObjects = <${N}/Panel>
+${I}        token info:id = "TapGesture"
+${I}    }
+
+${sichtbarkeitsAktion("Aktion", "hide", [`${N}/Panel`], I + "    ")}${I}}
+
+`;
+  });
+
+  return `#usda 1.0
+(
+    customLayerData = {
+        string creator = "AR Creator-Labor (Test)"
+    }
+    defaultPrim = "Root"
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+def Xform "Root"
+{
+    def Scope "Scenes" (
+        kind = "sceneLibrary"
+    )
+    {
+        def Xform "Szene" (
+            customData = {
+                bool preliminary_collidesWithEnvironment = 0
+                string sceneName = "Szene"
+            }
+            sceneName = "Szene"
+        )
+        {
+            token preliminary:anchoring:type = "plane"
+            token preliminary:planeAnchoring:alignment = "horizontal"
+
+${inhalt}${verhalten}            def Scope "Materialien"
+            {
+${materialien}            }
+        }
+    }
+}
+`;
+}
+
+
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const MODELLE = {
+  ente: ["https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/Duck/glTF-Binary/Duck.glb",
+         "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Duck/glTF-Binary/Duck.glb"],
+  fuchs: ["https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/Fox/glTF-Binary/Fox.glb",
+          "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Assets/main/Models/Fox/glTF-Binary/Fox.glb"],
+};
+const FARBEN = ["#F28C28", "#1FA2A6", "#7B5CC9", "#3FA34D", "#2F6FD6", "#E04F7A"];
+const ZIELGROESSE = 0.45;          // größte Abmessung des Tiers in Metern
+const PIN = { b: 0.2, h: 0.07 };   // Notiz-Karte (geschlossen)
+const PANEL = { b: 0.3, h: 0.2 };  // Textkarte (geöffnet)
+const enc = new TextEncoder();
+const $ = (id) => document.getElementById(id);
+const status = (t) => { $("status").textContent = t; };
+
+let notizen = [
+  { titel: "Tippe mich an!", text: "Das ist die erste Notiz. Beim Antippen öffnet sich dieser Text und ein Ton erklingt.", farbe: 0, tonArt: "standard", aufnahme: null, frequenz: 880 },
+  { titel: "Zweite Notiz", text: "Tippe auf diese Textkarte, um sie wieder zu schließen.", farbe: 1, tonArt: "standard", aufnahme: null, frequenz: 660 },
+];
+
+// ---------- Karten zeichnen ----------
+function textUmbruch(ctx, text, maxB) {
+  const zeilen = [];
+  for (const absatz of String(text).split("\n")) {
+    let z = "";
+    for (const w of absatz.split(/\s+/)) {
+      const test = z ? z + " " + w : w;
+      if (ctx.measureText(test).width > maxB && z) { zeilen.push(z); z = w; } else z = test;
+    }
+    zeilen.push(z);
+  }
+  return zeilen;
+}
+function zeichnePin(n) {
+  const c = document.createElement("canvas"); c.width = 640; c.height = 224;
+  const x = c.getContext("2d");
+  x.fillStyle = FARBEN[n.farbe]; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = "rgba(255,255,255,.25)"; x.fillRect(0, 0, c.width, 14);
+  x.fillStyle = "#fff"; x.font = "bold 64px system-ui, -apple-system, sans-serif"; x.textBaseline = "middle";
+  const ton = n.tonArt !== "kein";
+  let t = n.titel || "Notiz";
+  const maxB = c.width - (ton ? 150 : 60);
+  while (x.measureText(t).width > maxB && t.length > 1) t = t.slice(0, -2) + "…";
+  x.fillText(t, 32, c.height / 2 + 4);
+  if (ton) { x.font = "80px system-ui, sans-serif"; x.fillText("🔊", c.width - 118, c.height / 2 + 6); }
+  return c;
+}
+function zeichnePanel(n) {
+  const c = document.createElement("canvas"); c.width = 960; c.height = 640;
+  const x = c.getContext("2d");
+  x.fillStyle = "#FFFDF6"; x.fillRect(0, 0, c.width, c.height);
+  x.fillStyle = FARBEN[n.farbe]; x.fillRect(0, 0, c.width, 26); x.fillRect(0, 0, 14, c.height);
+  x.fillStyle = "#22252B"; x.textBaseline = "top";
+  x.font = "bold 58px system-ui, -apple-system, sans-serif";
+  x.fillText(n.titel || "Notiz", 50, 56);
+  x.font = "44px system-ui, -apple-system, sans-serif";
+  const zeilen = textUmbruch(x, n.text || "", c.width - 100).slice(0, 8);
+  zeilen.forEach((z, i) => x.fillText(z, 50, 150 + i * 56));
+  x.fillStyle = "#8A8F9C"; x.font = "32px system-ui, sans-serif";
+  x.fillText("Tippen zum Schließen", 50, c.height - 62);
+  return c;
+}
+const canvasZuBytes = (c) => new Promise((ok) => c.toBlob(async (b) => ok(new Uint8Array(await b.arrayBuffer())), "image/png"));
+
+// ---------- 3D-Vorschau ----------
+const ansicht = $("ansicht");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+ansicht.appendChild(renderer.domElement);
+const szene = new THREE.Scene();
+szene.background = new THREE.Color("#EAE6DC");
+const kamera = new THREE.PerspectiveCamera(45, 4 / 3, 0.01, 50);
+kamera.position.set(0.25, 0.55, 1.25);
+const steuerung = new OrbitControls(kamera, renderer.domElement);
+steuerung.target.set(0, 0.3, 0); steuerung.enableDamping = true;
+szene.add(new THREE.HemisphereLight(0xffffff, 0x998877, 2.2));
+const sonne = new THREE.DirectionalLight(0xffffff, 1.8); sonne.position.set(1, 2, 1.5); szene.add(sonne);
+const boden = new THREE.Mesh(new THREE.CircleGeometry(0.6, 48), new THREE.MeshStandardMaterial({ color: "#D9D3C5" }));
+boden.rotation.x = -Math.PI / 2; szene.add(boden);
+function groesse() { const b = ansicht.clientWidth, h = ansicht.clientHeight; renderer.setSize(b, h, false); kamera.aspect = b / h; kamera.updateProjectionMatrix(); }
+new ResizeObserver(groesse).observe(ansicht); groesse();
+renderer.setAnimationLoop(() => { steuerung.update(); renderer.render(szene, kamera); });
+
+let tierGruppe = null, tierDaten = null, tierHoehe = 0.3;
+const notizGruppe = new THREE.Group(); szene.add(notizGruppe);
+let klickbar = [];
+
+function notizPosition(i) {
+  const n = notizen.length;
+  return [(i - (n - 1) / 2) * 0.26, tierHoehe + 0.08, 0];
+}
+function vorschauNotizen() {
+  notizGruppe.clear(); klickbar = [];
+  notizen.forEach((n, i) => {
+    const g = new THREE.Group(); g.position.fromArray(notizPosition(i));
+    const tex = (c) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+    const pin = new THREE.Mesh(new THREE.PlaneGeometry(PIN.b, PIN.h), new THREE.MeshBasicMaterial({ map: tex(zeichnePin(n)), side: THREE.DoubleSide }));
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(PANEL.b, PANEL.h), new THREE.MeshBasicMaterial({ map: tex(zeichnePanel(n)), side: THREE.DoubleSide }));
+    panel.position.set(0, PANEL.h / 2 + PIN.h / 2 + 0.01, 0.01); panel.visible = false;
+    pin.userData = { art: "pin", i, panel }; panel.userData = { art: "panel", i };
+    g.add(pin, panel); notizGruppe.add(g); klickbar.push(pin, panel);
+  });
+}
+let druck = null;
+renderer.domElement.addEventListener("pointerdown", (e) => { druck = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener("pointerup", (e) => {
+  if (!druck || Math.hypot(e.clientX - druck[0], e.clientY - druck[1]) > 6) return;
+  const r = renderer.domElement.getBoundingClientRect();
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), kamera);
+  const treffer = ray.intersectObjects(klickbar.filter((o) => o.visible), false)[0];
+  if (!treffer) return;
+  const d = treffer.object.userData;
+  if (d.art === "pin") { d.panel.visible = true; spieleTon(d.i); }
+  else treffer.object.visible = false;
+});
+let audioEl = null;
+function spieleTon(i) {
+  const t = tonDatei(i); if (!t) return;
+  if (audioEl) audioEl.pause();
+  audioEl = new Audio(URL.createObjectURL(new Blob([t.daten], { type: t.mime })));
+  audioEl.play().catch(() => {});
+}
+
+// ---------- Modell laden und für USDZ aufbereiten ----------
+const loader = new GLTFLoader();
+async function ladeModell(quelle) {
+  status("Modell wird geladen …");
+  let gltf = null, fehler = null;
+  if (quelle instanceof ArrayBuffer) gltf = await loader.parseAsync(quelle, "");
+  else for (const url of quelle) { try { gltf = await loader.loadAsync(url); break; } catch (e) { fehler = e; } }
+  if (!gltf) throw fehler || new Error("Modell nicht ladbar");
+  const wurzel = gltf.scene;
+  wurzel.updateMatrixWorld(true);
+  tierDaten = await extrahiere(wurzel);
+  if (tierGruppe) szene.remove(tierGruppe);
+  tierGruppe = new THREE.Group();
+  tierGruppe.add(wurzel);
+  const m = new THREE.Matrix4().fromArray(tierDaten.matrix);
+  tierGruppe.applyMatrix4(m);
+  szene.add(tierGruppe);
+  steuerung.target.set(0, (tierHoehe + 0.2) / 2, 0);
+  vorschauNotizen();
+}
+
+async function bildZuPNG(bild, max = 2048) {
+  const b = bild.width, h = bild.height; if (!b || !h) return null;
+  const f = Math.min(1, max / Math.max(b, h));
+  const c = document.createElement("canvas"); c.width = Math.round(b * f); c.height = Math.round(h * f);
+  c.getContext("2d").drawImage(bild, 0, 0, c.width, c.height);
+  return canvasZuBytes(c);
+}
+
+async function extrahiere(wurzel) {
+  const meshes = [], materialien = [], matIndex = new Map(), texturen = [];
+  const v = new THREE.Vector3(), nm = new THREE.Matrix3();
+  const min = new THREE.Vector3(Infinity, Infinity, Infinity), max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+  const liste = [];
+  wurzel.traverse((o) => { if (o.isMesh && o.visible && o.geometry?.attributes?.position) liste.push(o); });
+  for (const o of liste) {
+    const g = o.geometry, pos = g.attributes.position, n = pos.count;
+    if (o.isSkinnedMesh) o.skeleton.update();
+    nm.getNormalMatrix(o.matrixWorld);
+    const P = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      o.getVertexPosition(i, v); v.applyMatrix4(o.matrixWorld);
+      P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z; min.min(v); max.max(v);
+    }
+    let N = null;
+    if (g.attributes.normal) {
+      N = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { v.fromBufferAttribute(g.attributes.normal, i).applyMatrix3(nm).normalize(); N[i * 3] = v.x; N[i * 3 + 1] = v.y; N[i * 3 + 2] = v.z; }
+    }
+    let UV = null;
+    if (g.attributes.uv) { UV = new Float32Array(n * 2); for (let i = 0; i < n; i++) { UV[i * 2] = g.attributes.uv.getX(i); UV[i * 2 + 1] = g.attributes.uv.getY(i); } }
+    const idx = g.index ? Array.from(g.index.array) : Array.from({ length: n }, (_, i) => i);
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    const gruppen = g.groups.length ? g.groups : [{ start: 0, count: idx.length, materialIndex: 0 }];
+    for (const gr of gruppen) {
+      const mat = mats[gr.materialIndex] || mats[0];
+      if (!matIndex.has(mat)) {
+        const eintrag = { color: mat.color ? [mat.color.r, mat.color.g, mat.color.b] : [0.8, 0.8, 0.8], opacity: mat.transparent ? mat.opacity : 1, roughness: mat.roughness ?? 0.8 };
+        if (mat.map?.image) {
+          const png = await bildZuPNG(mat.map.image);
+          if (png) { eintrag.texture = `textures/tier_${texturen.length}.png`; texturen.push({ name: eintrag.texture, data: png }); }
+        }
+        matIndex.set(mat, materialien.length); materialien.push(eintrag);
+      }
+      const ende = Math.min(idx.length, gr.start + gr.count);
+      meshes.push({ points: P, normals: N, uvs: UV, indices: idx.slice(gr.start, ende), material: matIndex.get(mat) });
+    }
+  }
+  const groesse = new THREE.Vector3().subVectors(max, min);
+  const s = ZIELGROESSE / Math.max(groesse.x, groesse.y, groesse.z);
+  const mitte = new THREE.Vector3().addVectors(min, max).multiplyScalar(0.5);
+  tierHoehe = groesse.y * s;
+  const matrix = [s, 0, 0, 0, 0, s, 0, 0, 0, 0, s, 0, -mitte.x * s, -min.y * s, -mitte.z * s, 1];
+  return { meshes, materials: materialien, matrix, texturen };
+}
+
+// ---------- Töne ----------
+const dingCache = {};
+function tonDatei(i) {
+  const n = notizen[i];
+  if (n.tonArt === "kein") return null;
+  if (n.tonArt === "aufnahme" && n.aufnahme) return n.aufnahme;
+  if (!dingCache[n.frequenz]) dingCache[n.frequenz] = { daten: dingWAV(n.frequenz), mime: "audio/wav", endung: "wav" };
+  return dingCache[n.frequenz];
+}
+function endungFuer(mime) {
+  if (/mp4|m4a|aac/.test(mime)) return "m4a";
+  if (/mpeg|mp3/.test(mime)) return "mp3";
+  if (/wav/.test(mime)) return "wav";
+  return "webm";
+}
+let rekorder = null;
+async function aufnahme(i, knopf) {
+  if (rekorder) { rekorder.stop(); return; }
+  try {
+    const strom = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const typ = ["audio/mp4", "audio/aac", "audio/mpeg", "audio/webm"].find((t) => window.MediaRecorder?.isTypeSupported?.(t));
+    rekorder = new MediaRecorder(strom, typ ? { mimeType: typ } : undefined);
+    const stuecke = [];
+    rekorder.ondataavailable = (e) => e.data.size && stuecke.push(e.data);
+    rekorder.onstop = async () => {
+      strom.getTracks().forEach((t) => t.stop());
+      const mime = rekorder.mimeType || typ || "audio/mp4";
+      const blob = new Blob(stuecke, { type: mime });
+      notizen[i].aufnahme = { daten: new Uint8Array(await blob.arrayBuffer()), mime, endung: endungFuer(mime) };
+      notizen[i].tonArt = "aufnahme";
+      rekorder = null; zeigeListe(); neuBauen();
+    };
+    rekorder.start(); knopf.textContent = "⏹ Stopp"; knopf.classList.add("aufnahme");
+  } catch (e) {
+    alert("Das Mikrofon ist nicht verfügbar. Bitte den Zugriff erlauben (die Seite muss über https geöffnet sein).");
+  }
+}
+
+// ---------- Notiz-Editor ----------
+function zeigeListe() {
+  const liste = $("notizListe"); liste.innerHTML = "";
+  notizen.forEach((n, i) => {
+    const el = document.createElement("div"); el.className = "notiz";
+    el.innerHTML = `
+      <div class="notiz-kopf"><span>Notiz ${i + 1}</span>${notizen.length > 1 ? '<button data-weg>Entfernen</button>' : ""}</div>
+      <label>Überschrift</label><input type="text" data-feld="titel" maxlength="22">
+      <label>Text</label><textarea data-feld="text" maxlength="260"></textarea>
+      <label>Farbe</label><div class="farben">${FARBEN.map((f, k) => `<button data-farbe="${k}" class="${k === n.farbe ? "aktiv" : ""}" style="background:${f}" aria-label="Farbe ${k + 1}"></button>`).join("")}</div>
+      <label>Ton beim Antippen</label>
+      <select data-feld="tonArt">
+        <option value="standard">Test-Ton („Ding“)</option>
+        <option value="aufnahme" ${n.aufnahme ? "" : "disabled"}>Eigene Aufnahme${n.aufnahme ? ` (${n.aufnahme.endung})` : " – erst aufnehmen"}</option>
+        <option value="kein">Kein Ton</option>
+      </select>
+      <div class="reihe"><button data-auf>🎙 Aufnehmen</button><button data-hoer>▶ Anhören</button></div>
+      ${n.aufnahme && n.aufnahme.endung === "webm" ? '<div class="warnung">Dieser Browser nimmt im WebM-Format auf, das Apple in AR nicht abspielt. Bitte direkt am iPad aufnehmen.</div>' : ""}`;
+    el.querySelector('[data-feld="titel"]').value = n.titel;
+    el.querySelector('[data-feld="text"]').value = n.text;
+    el.querySelector('[data-feld="tonArt"]').value = n.tonArt;
+    el.querySelectorAll("[data-feld]").forEach((f) => f.addEventListener("input", () => {
+      n[f.dataset.feld] = f.value; vorschauNotizen(); neuBauenSpaeter();
+    }));
+    el.querySelectorAll("[data-farbe]").forEach((b) => b.addEventListener("click", () => { n.farbe = +b.dataset.farbe; zeigeListe(); vorschauNotizen(); neuBauen(); }));
+    el.querySelector("[data-auf]").addEventListener("click", (e) => aufnahme(i, e.currentTarget));
+    el.querySelector("[data-hoer]").addEventListener("click", () => spieleTon(i));
+    el.querySelector("[data-weg]")?.addEventListener("click", () => { notizen.splice(i, 1); zeigeListe(); vorschauNotizen(); neuBauen(); });
+    liste.appendChild(el);
+  });
+  $("notizNeu").disabled = notizen.length >= 4;
+}
+$("notizNeu").addEventListener("click", () => {
+  notizen.push({ titel: `Notiz ${notizen.length + 1}`, text: "Neuer Text", farbe: notizen.length % FARBEN.length, tonArt: "standard", aufnahme: null, frequenz: [880, 660, 990, 550][notizen.length % 4] });
+  zeigeListe(); vorschauNotizen(); neuBauen();
+});
+
+// ---------- USDZ bauen ----------
+const kannAR = document.createElement("a").relList.supports("ar");
+let usdzURL = null, bauNr = 0, zeitgeber = null;
+function neuBauenSpaeter() { clearTimeout(zeitgeber); zeitgeber = setTimeout(neuBauen, 500); }
+async function neuBauen() {
+  if (!tierDaten) return;
+  const nr = ++bauNr;
+  status("AR-Datei wird erstellt …");
+  const dateien = [...tierDaten.texturen];
+  const szeneDaten = { tier: tierDaten, notizen: [] };
+  for (let i = 0; i < notizen.length; i++) {
+    const n = notizen[i];
+    const pinName = `textures/pin_${i}.png`, panelName = `textures/panel_${i}.png`;
+    dateien.push({ name: pinName, data: await canvasZuBytes(zeichnePin(n)) });
+    dateien.push({ name: panelName, data: await canvasZuBytes(zeichnePanel(n)) });
+    const t = tonDatei(i);
+    let ton = null;
+    if (t && t.endung !== "webm") { ton = `audio/notiz_${i}.${t.endung}`; dateien.push({ name: ton, data: t.daten }); }
+    szeneDaten.notizen.push({ position: notizPosition(i), pin: { ...PIN, textur: pinName }, panel: { ...PANEL, textur: panelName }, ton });
+  }
+  if (nr !== bauNr) return;
+  const usda = baueUSDA(szeneDaten);
+  const zip = zipUSDZ([{ name: "szene.usda", data: enc.encode(usda) }, ...dateien]);
+  if (usdzURL) URL.revokeObjectURL(usdzURL);
+  usdzURL = URL.createObjectURL(new Blob([zip], { type: "model/vnd.usdz+zip" }));
+  if (kannAR) { $("arLink").href = usdzURL; $("arLink").hidden = false; }
+  else { $("download").href = usdzURL; $("download").hidden = false; $("keinAR").hidden = false; }
+  status(`AR-Datei bereit (${Math.round(zip.length / 1024)} KB)`);
+}
+
+// AR-Knopf als Bild (Apple verlangt ein Bild im AR-Link)
+(function arKnopf() {
+  const c = document.createElement("canvas"); c.width = 640; c.height = 120;
+  const x = c.getContext("2d");
+  x.fillStyle = "#1FA2A6"; x.beginPath(); x.roundRect(0, 0, 640, 120, 60); x.fill();
+  x.fillStyle = "#fff"; x.font = "bold 46px system-ui, -apple-system, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText("📱 Im Raum ansehen", 320, 64);
+  $("arBild").src = c.toDataURL("image/png");
+})();
+
+// ---------- Start ----------
+$("modellWahl").addEventListener("change", async (e) => {
+  if (e.target.value === "eigen") { $("glbDatei").click(); return; }
+  try { await ladeModell(MODELLE[e.target.value]); neuBauen(); } catch (err) { status("Fehler: " + err.message); }
+});
+$("glbDatei").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  try { await ladeModell(await f.arrayBuffer()); neuBauen(); }
+  catch (err) { status("Diese Datei konnte nicht gelesen werden: " + err.message); }
+});
+zeigeListe();
+ladeModell(MODELLE.ente).then(neuBauen).catch((err) => status("Fehler beim Laden: " + err.message));
+</script>
+</body>
+</html>
