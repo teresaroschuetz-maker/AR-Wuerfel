@@ -59,7 +59,7 @@
   <section class="karte">
     <h2>1 · Vorschau</h2>
     <div id="ansicht"><button id="infoKnopf" aria-label="Info zum Tier" title="Info zum Tier">i</button><div id="infoFenster" hidden></div></div>
-    <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf einen farbigen Punkt: Der Text öffnet sich und der Ton spielt. In der Vorschau schließt ein Tipp auf den Text ihn wieder, im Raum schließt er sich nach einigen Sekunden von selbst.</p>
+    <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf einen farbigen Punkt: Der Text öffnet sich und der Ton spielt. Ein Tipp auf die Karte schließt sie wieder.</p>
 
     <label for="modellWahl">Modell</label>
     <select id="modellWahl">
@@ -102,7 +102,7 @@
       <label><input type="checkbox"> Am Tier sind die farbigen Punkte zu sehen, die Textkarten sind noch versteckt.</label>
       <label><input type="checkbox"> Antippen eines Punkts öffnet die Karte (Notiz 1) bzw. das Wort-Etikett (Notiz 2) daneben.</label>
       <label><input type="checkbox"> Beim Antippen ist der Ton zu hören (Lautlos-Schalter aus, Lautstärke an).</label>
-      <label><input type="checkbox"> Die Karte schließt sich nach einigen Sekunden von selbst (Wort 5 s, Notiz 10 s, Info 15 s).</label>
+      <label><input type="checkbox"> Antippen der geöffneten Karte (oder des Wort-Etiketts) schließt sie wieder.</label>
       <label><input type="checkbox"> Eine eigene Aufnahme (🎙) wird in AR abgespielt.</label>
       <label><input type="checkbox"> Das ⓘ-Schild links vorne öffnet beim Antippen die Info-Karte.</label>
       <p class="hinweis">Bitte melde Claude, welche Punkte klappen und welche nicht.</p>
@@ -483,8 +483,7 @@ ${sichtbarkeitsAktion("Aktion", "hide", panels, I + "    ")}${I}}
   szene.notizen.forEach((n, i) => {
     const N = `${S}/Notiz_${i}`;
     const B = `${S}/Notiz_${i}_Oeffnen`;
-    const dauer = n.dauer || 8;
-    const aktionen = [`${B}/Gruppe/Ablauf`];
+    const aktionen = [`${B}/Gruppe/Zeigen`];
     if (n.ton) aktionen.push(`${B}/Gruppe/Ton`);
     verhalten += `${I}def Preliminary_Behavior "Notiz_${i}_Oeffnen"
 ${I}{
@@ -506,24 +505,24 @@ ${I}        bool loops = 0
 ${I}        int performCount = 1
 ${I}        token type = "parallel"
 
-${I}        def Preliminary_Action "Ablauf"
-${I}        {
-${I}            rel actions = [<${B}/Gruppe/Ablauf/Zeigen>, <${B}/Gruppe/Ablauf/Warten>, <${B}/Gruppe/Ablauf/Verstecken>]
-${I}            token info:id = "Group"
-${I}            bool loops = 0
-${I}            int performCount = 1
-${I}            token type = "serial"
-
-${sichtbarkeitsAktion("Zeigen", "show", [`${N}/Panel`], I + "            ")}
-${I}            def Preliminary_Action "Warten"
-${I}            {
-${I}                double duration = ${zahl(dauer)}
-${I}                token info:id = "Wait"
-${I}            }
-
-${sichtbarkeitsAktion("Verstecken", "hide", [`${N}/Panel`], I + "            ")}${I}        }
-${n.ton ? tonAktion("Ton", N, n.ton, I + "        ") : ""}${I}    }
+${sichtbarkeitsAktion("Zeigen", "show", [`${N}/Panel`], I + "        ")}${n.ton ? tonAktion("Ton", N, n.ton, I + "        ") : ""}${I}    }
 ${I}}
+
+`;
+    const B2 = `${S}/Notiz_${i}_Schliessen`;
+    verhalten += `${I}def Preliminary_Behavior "Notiz_${i}_Schliessen"
+${I}{
+${I}    rel actions = <${B2}/Aktion>
+${I}    uniform bool exclusive = 0
+${I}    rel triggers = <${B2}/Ausloeser>
+
+${I}    def Preliminary_Trigger "Ausloeser"
+${I}    {
+${I}        rel affectedObjects = <${N}/Panel>
+${I}        token info:id = "TapGesture"
+${I}    }
+
+${sichtbarkeitsAktion("Aktion", "hide", [`${N}/Panel`], I + "    ")}${I}}
 
 `;
   });
@@ -643,7 +642,7 @@ function zeichnePanel(n) {
   const zeilen = textUmbruch(x, n.text || "", c.width - 100).slice(0, 8);
   zeilen.forEach((z, i) => x.fillText(z, 50, 150 + i * 56));
   x.fillStyle = "#8A8F9C"; x.font = "32px system-ui, sans-serif";
-  x.fillText("schließt sich von selbst", 50, c.height - 62);
+  x.fillText("Tippen zum Schließen", 50, c.height - 62);
   return c;
 }
 function zeichneInfoSchild() {
@@ -668,7 +667,7 @@ function zeichneInfoPanel() {
   x.font = "42px system-ui, -apple-system, sans-serif";
   textUmbruch(x, info.text || "", c.width - 120).slice(0, 13).forEach((z, i) => x.fillText(z, 60, 200 + i * 52));
   x.fillStyle = "#8A8F9C"; x.font = "32px system-ui, sans-serif";
-  x.fillText("schließt sich von selbst", 60, c.height - 60);
+  x.fillText("Tippen zum Schließen", 60, c.height - 60);
   return c;
 }
 function infoLage() {
