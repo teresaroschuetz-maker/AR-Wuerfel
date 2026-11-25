@@ -100,7 +100,7 @@
       <p class="hinweis" style="margin-top:0">Oben auf „Im Raum ansehen“ tippen, das Tier auf den Boden oder Tisch stellen und dann prüfen:</p>
       <label><input type="checkbox"> Das Tier erscheint im Raum.</label>
       <label><input type="checkbox"> Am Tier sind die farbigen Punkte zu sehen, die Textkarten sind noch versteckt.</label>
-      <label><input type="checkbox"> Antippen eines Punkts öffnet den Text daneben.</label>
+      <label><input type="checkbox"> Antippen eines Punkts öffnet die Karte (Notiz 1) bzw. das Wort-Etikett (Notiz 2) daneben.</label>
       <label><input type="checkbox"> Beim Antippen ist der Ton zu hören (Lautlos-Schalter aus, Lautstärke an).</label>
       <label><input type="checkbox"> Antippen des Texts schließt ihn wieder.</label>
       <label><input type="checkbox"> Eine eigene Aufnahme (🎙) wird in AR abgespielt.</label>
@@ -553,8 +553,8 @@ const INFO_PANEL = { b: 0.42, h: 0.315 };
 const info = { an: true, titel: "Die Stockente", text: "Hier stehen allgemeine Informationen zum Tier, zum Beispiel:\nLebensraum: Teiche, Seen und Flüsse\nNahrung: Pflanzen, Insekten, Schnecken\nBesonderheit: Das Männchen hat einen grün schimmernden Kopf.", tonArt: "standard", aufnahme: null, frequenz: 523 };
 let tierMasse = { b: 0.4, t: 0.4 };
 let notizen = [
-  { titel: "Tippe mich an!", text: "Das ist die erste Notiz. Beim Antippen öffnet sich dieser Text und ein Ton erklingt.", farbe: 0, tonArt: "standard", aufnahme: null, frequenz: 880, punkt: null },
-  { titel: "Zweite Notiz", text: "Tippe auf diese Textkarte, um sie wieder zu schließen.", farbe: 1, tonArt: "standard", aufnahme: null, frequenz: 660, punkt: null },
+  { typ: "notiz", titel: "Tippe mich an!", text: "Das ist die erste Notiz. Beim Antippen öffnet sich dieser Text und ein Ton erklingt.", farbe: 0, tonArt: "standard", aufnahme: null, frequenz: 880, punkt: null },
+  { titel: "Schnabel", text: "", farbe: 1, tonArt: "standard", aufnahme: null, frequenz: 660, punkt: null, typ: "wort" },
 ];
 
 // ---------- Karten zeichnen ----------
@@ -569,6 +569,29 @@ function textUmbruch(ctx, text, maxB) {
     zeilen.push(z);
   }
   return zeilen;
+}
+const WORT_H = 0.055; // Höhe des Wort-Etiketts in Metern
+function zeichneWort(n) {
+  const h = 160;
+  const m = document.createElement("canvas").getContext("2d");
+  const schrift = "bold 96px system-ui, -apple-system, sans-serif";
+  m.font = schrift;
+  const ton = n.tonArt !== "kein";
+  const wort = (n.titel || "Wort").trim();
+  const b = Math.min(1400, Math.ceil(m.measureText(wort).width + (ton ? 190 : 90)));
+  const c = document.createElement("canvas"); c.width = b; c.height = h;
+  const x = c.getContext("2d");
+  x.fillStyle = FARBEN[n.farbe]; x.fillRect(0, 0, b, h);
+  x.fillStyle = "rgba(255,255,255,.22)"; x.fillRect(0, 0, b, 12);
+  x.fillStyle = "#fff"; x.font = schrift; x.textBaseline = "middle";
+  let px = 45;
+  if (ton) { x.font = "84px system-ui, sans-serif"; x.fillText("🔊", px, h / 2 + 6); px += 110; x.font = schrift; }
+  x.fillText(wort, px, h / 2 + 6);
+  return c;
+}
+function panelBild(n) {
+  if (n.typ === "wort") { const c = zeichneWort(n); return { c, b: WORT_H * c.width / c.height, h: WORT_H }; }
+  return { c: zeichnePanel(n), b: PANEL.b, h: PANEL.h };
 }
 function zeichnePanel(n) {
   const c = document.createElement("canvas"); c.width = 960; c.height = 640;
@@ -641,11 +664,41 @@ let tierGruppe = null, tierDaten = null, tierHoehe = 0.3;
 const notizGruppe = new THREE.Group(); szene.add(notizGruppe);
 let klickbar = [];
 
-function panelLage(punkt) {
+// Sucht eine Lage für die Karte, bei der sie von vorne nicht im Tier steckt
+const lageCache = new Map();
+function panelLage(punkt, b, h, wort) {
+  const schluessel = punkt.p.map((v) => v.toFixed(4)).join(",") + "|" + b.toFixed(3) + "|" + h.toFixed(3) + "|" + (tierGruppe ? tierGruppe.uuid : "");
+  if (lageCache.has(schluessel)) return lageCache.get(schluessel);
   let dx = punkt.n[0], dz = punkt.n[2];
   const l = Math.hypot(dx, dz);
   if (l < 0.35) { dx = 0; dz = 1; } else { dx /= l; dz /= l; }
-  return { versatz: [dx * 0.05, PANEL.h / 2 + 0.035, dz * 0.05], drehung: Math.atan2(dx, dz) };
+  const drehung = Math.atan2(dx, dz);
+  const vorne = new THREE.Vector3(dx, 0, dz), rechts = new THREE.Vector3(dz, 0, -dx);
+  const basis = new THREE.Vector3().fromArray(punkt.p);
+  const ray = new THREE.Raycaster();
+  const hoch = h / 2 + (wort ? 0.03 : 0.035);
+  let versatz = null;
+  if (tierGruppe) tierGruppe.updateMatrixWorld(true);
+  for (let d = wort ? 0.03 : 0.05; d <= 0.6; d += 0.03) {
+    let yy = hoch;
+    if (basis.y + yy - h / 2 < 0.01) yy = 0.01 - basis.y + h / 2; // nicht unter den Boden
+    const mitte = basis.clone().addScaledVector(vorne, d); mitte.y += yy;
+    let frei = true;
+    if (tierGruppe) {
+      for (const u of [-0.45, 0, 0.45]) for (const v of [-0.45, 0, 0.45]) {
+        if (!frei) break;
+        const s = mitte.clone().addScaledVector(rechts, u * b); s.y += v * h;
+        ray.set(s.clone().addScaledVector(vorne, 1.5), vorne.clone().negate());
+        const t = ray.intersectObject(tierGruppe, true)[0];
+        if (t && t.distance < 1.495) frei = false;
+      }
+    }
+    versatz = [dx * d, yy, dz * d];
+    if (frei) break;
+  }
+  const lage = { versatz, drehung };
+  lageCache.set(schluessel, lage);
+  return lage;
 }
 function trefferAufTier(start, richtung) {
   if (!tierGruppe) return null;
@@ -671,11 +724,12 @@ function vorschauNotizen() {
   notizen.forEach((n, i) => {
     if (!n.punkt) return;
     const g = new THREE.Group(); g.position.fromArray(n.punkt.p);
-    const tex = new THREE.CanvasTexture(zeichnePanel(n)); tex.colorSpace = THREE.SRGBColorSpace;
+    const bild = panelBild(n);
+    const tex = new THREE.CanvasTexture(bild.c); tex.colorSpace = THREE.SRGBColorSpace;
     const farbe = new THREE.Color(FARBEN[n.farbe]);
     const pin = new THREE.Mesh(new THREE.SphereGeometry(PUNKT_R, 20, 12), new THREE.MeshStandardMaterial({ color: farbe, emissive: farbe.clone().multiplyScalar(0.55), roughness: 0.4 }));
-    const panel = new THREE.Mesh(new THREE.PlaneGeometry(PANEL.b, PANEL.h), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
-    const lage = panelLage(n.punkt);
+    const panel = new THREE.Mesh(new THREE.PlaneGeometry(bild.b, bild.h), new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide }));
+    const lage = panelLage(n.punkt, bild.b, bild.h, n.typ === "wort");
     panel.position.fromArray(lage.versatz); panel.rotation.y = lage.drehung; panel.visible = false;
     pin.userData = { art: "pin", i, panel }; panel.userData = { art: "panel", i };
     g.add(pin, panel); notizGruppe.add(g); klickbar.push(pin, panel);
@@ -846,8 +900,13 @@ function zeigeListe() {
     const el = document.createElement("div"); el.className = "notiz";
     el.innerHTML = `
       <div class="notiz-kopf"><span><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${FARBEN[n.farbe]};vertical-align:-1px"></span> Notiz ${i + 1}</span>${notizen.length > 1 ? '<button data-weg>Entfernen</button>' : ""}</div>
-      <label>Überschrift</label><input type="text" data-feld="titel" maxlength="22">
-      <label>Text</label><textarea data-feld="text" maxlength="260"></textarea>
+      <label>Art</label>
+      <select data-feld="typ">
+        <option value="wort">Wort – kleines Etikett mit einem Begriff</option>
+        <option value="notiz">Notiz – Karte mit Überschrift und Text</option>
+      </select>
+      <label>${n.typ === "wort" ? "Wort" : "Überschrift"}</label><input type="text" data-feld="titel" maxlength="${n.typ === "wort" ? 18 : 22}">
+      ${n.typ === "wort" ? "" : '<label>Text</label><textarea data-feld="text" maxlength="260"></textarea>'}
       <label>Farbe</label><div class="farben">${FARBEN.map((f, k) => `<button data-farbe="${k}" class="${k === n.farbe ? "aktiv" : ""}" style="background:${f}" aria-label="Farbe ${k + 1}"></button>`).join("")}</div>
       <label>Ton beim Antippen</label>
       <select data-feld="tonArt">
@@ -859,10 +918,13 @@ function zeigeListe() {
       <div class="reihe"><button data-auf>🎙 Aufnehmen</button><button data-hoer>▶ Anhören</button></div>
       ${n.aufnahme && n.aufnahme.endung === "webm" ? '<div class="warnung">Dieser Browser nimmt im WebM-Format auf, das Apple in AR nicht abspielt. Bitte direkt am iPad aufnehmen.</div>' : ""}`;
     el.querySelector('[data-feld="titel"]').value = n.titel;
-    el.querySelector('[data-feld="text"]').value = n.text;
+    el.querySelector('[data-feld="typ"]').value = n.typ;
+    if (n.typ !== "wort") el.querySelector('[data-feld="text"]').value = n.text;
     el.querySelector('[data-feld="tonArt"]').value = n.tonArt;
     el.querySelectorAll("[data-feld]").forEach((f) => f.addEventListener("input", () => {
-      n[f.dataset.feld] = f.value; vorschauNotizen(); neuBauenSpaeter();
+      n[f.dataset.feld] = f.value;
+      if (f.dataset.feld === "typ") { if (n.typ === "notiz" && !n.text) n.text = "Hier steht der Text der Notiz."; zeigeListe(); }
+      vorschauNotizen(); neuBauenSpaeter();
     }));
     el.querySelectorAll("[data-farbe]").forEach((b) => b.addEventListener("click", () => { n.farbe = +b.dataset.farbe; zeigeListe(); vorschauNotizen(); neuBauen(); }));
     el.querySelector("[data-setzen]").addEventListener("click", () => {
@@ -905,7 +967,7 @@ $("infoKnopf").addEventListener("click", () => {
   if (f.hidden) { fuelleInfoFenster(); f.hidden = false; spieleTon("info"); } else f.hidden = true;
 });
 $("notizNeu").addEventListener("click", () => {
-  notizen.push({ titel: `Notiz ${notizen.length + 1}`, text: "Neuer Text", farbe: notizen.length % FARBEN.length, tonArt: "standard", aufnahme: null, frequenz: [880, 660, 990, 550][notizen.length % 4], punkt: null });
+  notizen.push({ typ: "notiz", titel: `Notiz ${notizen.length + 1}`, text: "Neuer Text", farbe: notizen.length % FARBEN.length, tonArt: "standard", aufnahme: null, frequenz: [880, 660, 990, 550][notizen.length % 4], punkt: null });
   standardPunkte(); zeigeListe(); vorschauNotizen(); neuBauen();
 });
 
@@ -923,15 +985,16 @@ async function neuBauen() {
     const n = notizen[i];
     if (!n.punkt) continue;
     const panelName = `textures/panel_${szeneDaten.notizen.length}.png`;
-    dateien.push({ name: panelName, data: await canvasZuBytes(zeichnePanel(n)) });
+    const bild = panelBild(n);
+    dateien.push({ name: panelName, data: await canvasZuBytes(bild.c) });
     const t = tonDatei(i);
     let ton = null;
     if (t && t.endung !== "webm") { ton = `audio/notiz_${szeneDaten.notizen.length}.${t.endung}`; dateien.push({ name: ton, data: t.daten }); }
-    const lage = panelLage(n.punkt);
+    const lage = panelLage(n.punkt, bild.b, bild.h, n.typ === "wort");
     szeneDaten.notizen.push({
       position: n.punkt.p,
       punkt: { radius: PUNKT_R, farbe: new THREE.Color(FARBEN[n.farbe]).toArray() },
-      panel: { ...PANEL, textur: panelName, versatz: lage.versatz, drehungY: lage.drehung * 180 / Math.PI },
+      panel: { b: bild.b, h: bild.h, textur: panelName, versatz: lage.versatz, drehungY: lage.drehung * 180 / Math.PI },
       ton,
     });
   }
