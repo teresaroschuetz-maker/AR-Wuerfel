@@ -1,0 +1,107 @@
+{
+  "hinweis": "Liste der Modelle für das Creator-Labor. Jede Datei muss als unverschlüsselte GLB-Datei in diesem Ordner liegen.",
+  "modelle": [
+    {
+      "id": "elefant",
+      "name": "Elefant",
+      "gruppe": "Tiere",
+      "datei": "elefant.glb"
+    },
+    {
+      "id": "fuchs",
+      "name": "Fuchs",
+      "gruppe": "Tiere",
+      "datei": "fuchs.glb"
+    },
+    {
+      "id": "giraffe",
+      "name": "Giraffe",
+      "gruppe": "Tiere",
+      "datei": "giraffe.glb"
+    },
+    {
+      "id": "hai",
+      "name": "Hai",
+      "gruppe": "Tiere",
+      "datei": "hai.glb"
+    },
+    {
+      "id": "krabbe",
+      "name": "Krabbe",
+      "gruppe": "Tiere",
+      "datei": "krabbe.glb"
+    },
+    {
+      "id": "loewe",
+      "name": "Löwe",
+      "gruppe": "Tiere",
+      "datei": "loewe.glb"
+    },
+    {
+      "id": "spinne",
+      "name": "Spinne",
+      "gruppe": "Tiere",
+      "datei": "spinne.glb"
+    },
+    {
+      "id": "tiger",
+      "name": "Tiger",
+      "gruppe": "Tiere",
+      "datei": "tiger.glb"
+    },
+    {
+      "id": "vogelspinne",
+      "name": "Vogelspinne",
+      "gruppe": "Tiere",
+      "datei": "vogelspinne.glb"
+    },
+    {
+      "id": "ankylosaurus",
+      "name": "Ankylosaurus",
+      "gruppe": "Dinosaurier",
+      "datei": "ankylosaurus.glb"
+    },
+    {
+      "id": "trex",
+      "name": "T-Rex",
+      "gruppe": "Dinosaurier",
+      "datei": "trex.glb"
+    },
+    {
+      "id": "eiffelturm",
+      "name": "Eiffelturm",
+      "gruppe": "Bauwerke",
+      "datei": "eiffelturm.glb"
+    },
+    {
+      "id": "freiheitsstatue",
+      "name": "Freiheitsstatue",
+      "gruppe": "Bauwerke",
+      "datei": "freiheitsstatue.glb"
+    },
+    {
+      "id": "londoneye",
+      "name": "London Eye",
+      "gruppe": "Bauwerke",
+      "datei": "londoneye.glb"
+    },
+    {
+      "id": "oper",
+      "name": "Oper Sydney",
+      "gruppe": "Bauwerke",
+      "datei": "oper.glb"
+    },
+    {
+      "id": "erde",
+      "name": "Erde",
+      "gruppe": "Weltall",
+      "datei": "erde.glb"
+    },
+    {
+      "id": "mond",
+      "name": "Mond",
+      "gruppe": "Weltall",
+      "datei": "mond.glb"
+    }
+  ]
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>AR-Szene</title>
+<link rel="stylesheet" href="stil.css">
+<style>
+  main{max-width:820px}
+  h1{font-size:28px;margin:6px 0 12px;text-align:center}
+  .schritte{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0 0;padding:0;list-style:none}
+  .schritte li{background:#fff;border-radius:14px;padding:10px 14px;font-size:16px;box-shadow:0 2px 10px rgba(30,30,50,.08)}
+  #arLink img{max-width:380px}
+  #infoKnopf{position:absolute;top:10px;right:10px;width:50px;height:50px;border-radius:50%;padding:0;background:#2F6FD6;color:#fff;font:700 28px Georgia,serif;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:2}
+  #infoFenster{position:absolute;top:68px;right:10px;left:10px;max-width:460px;margin-left:auto;background:#FFFDF6;border-radius:16px;box-shadow:0 6px 22px rgba(0,0,0,.2);padding:16px 18px;z-index:2;max-height:calc(100% - 80px);overflow:auto;border-top:8px solid #2F6FD6}
+  #infoFenster h3{margin:0 0 8px;font-size:21px} #infoFenster p{margin:0 0 10px;font-size:17px;line-height:1.45;white-space:pre-wrap}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div class="streifen"><i style="background:#F28C28"></i><i style="background:#1FA2A6"></i><i style="background:#7B5CC9"></i><i style="background:#3FA34D"></i><i style="background:#2F6FD6"></i><i style="background:#E04F7A"></i></div>
+<main>
+  <h1 id="titel">Lade …</h1>
+  <div class="karte">
+    <div id="ansicht" class="ansicht"><button id="infoKnopf" aria-label="Info" hidden>i</button><div id="infoFenster" hidden></div></div>
+    <div class="ar-bereich">
+      <a id="arLink" rel="ar" href="#" hidden><img id="arBild" alt="Im Raum ansehen"></a>
+      <div class="status" id="status">Einen Moment …</div>
+      <div id="keinAR" class="warnung" hidden>Die Ansicht im Raum funktioniert auf dem iPad oder iPhone in Safari. Hier kannst du das Tier drehen und die Punkte antippen.</div>
+    </div>
+  </div>
+  <ul class="schritte">
+    <li>① Auf „Im Raum ansehen“ tippen</li>
+    <li>② iPad langsam über den Boden bewegen</li>
+    <li>③ Bunte Punkte antippen</li>
+  </ul>
+</main>
+<script type="module">
+import { Szene3D, BEISPIELMODELLE, kannAR, arKnopfBild } from "./szene3d.js";
+const $ = (id) => document.getElementById(id);
+const fehlerSeite = (t) => { $("titel").textContent = "Hoppla"; $("status").textContent = t; };
+
+const id = new URLSearchParams(location.search).get("s") || "";
+if (!/^[a-z0-9]{24}$/.test(id)) fehlerSeite("Dieser Link ist unvollständig. Bitte den QR-Code noch einmal scannen.");
+else start().catch((e) => fehlerSeite("Die Szene konnte nicht geladen werden. " + (e.message || "")));
+
+async function start() {
+  const basis = `daten/${id}/`;
+  const r = await fetch(basis + "szene.json", { cache: "no-store" });
+  if (!r.ok) { fehlerSeite("Diese Szene gibt es nicht (mehr). Bitte bei der Lehrperson nachfragen."); return; }
+  const szene = await r.json();
+  document.title = szene.titel || "AR-Szene";
+  $("titel").textContent = szene.titel || "";
+
+  const toene = new Map();
+  const dateien = [szene.info?.ton, ...(szene.notizen || []).map((n) => n.ton)].filter((t) => t?.art === "datei").map((t) => t.datei);
+  await Promise.all(dateien.map(async (d) => {
+    const a = await fetch(basis + d); if (!a.ok) return;
+    const endung = d.split(".").pop();
+    toene.set(d, { daten: new Uint8Array(await a.arrayBuffer()), mime: endung === "wav" ? "audio/wav" : endung === "mp3" ? "audio/mpeg" : "audio/mp4", endung });
+  }));
+
+  const s3d = new Szene3D($("ansicht"), { tonQuelle: (d) => toene.get(d) || null });
+  const m = szene.modell || {};
+  const quelle = m.quelle === "eigen" ? [basis + "modell.glb"] : m.quelle === "bibliothek" ? ["modelle/" + m.datei] : (BEISPIELMODELLE[m.id] || BEISPIELMODELLE.ente).urls;
+  $("status").textContent = "Das Modell wird geladen …";
+  await s3d.ladeModell(quelle);
+  s3d.zeige(szene);
+
+  if (szene.info?.an) {
+    $("infoKnopf").hidden = false;
+    $("infoKnopf").addEventListener("click", () => {
+      const f = $("infoFenster");
+      if (!f.hidden) { f.hidden = true; return; }
+      f.innerHTML = "";
+      const h = document.createElement("h3"); h.textContent = szene.info.titel || "Info";
+      const t = document.createElement("p"); t.textContent = szene.info.text || "";
+      const z = document.createElement("button"); z.textContent = "Schließen"; z.onclick = () => { f.hidden = true; };
+      f.append(h, t, z); f.hidden = false; s3d.spieleTon(szene.info);
+    });
+  }
+
+  if (!kannAR()) { $("status").textContent = ""; $("keinAR").hidden = false; return; }
+  $("status").textContent = "Die Ansicht im Raum wird vorbereitet …";
+  const blob = await s3d.baueUSDZ();
+  $("arBild").src = arKnopfBild("📱 Im Raum ansehen");
+  $("arLink").href = URL.createObjectURL(blob);
+  $("arLink").hidden = false;
+  $("status").textContent = "";
+}
+</script>
+</body>
+</html>

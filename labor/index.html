@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>AR Creator-Labor</title>
+<link rel="stylesheet" href="stil.css">
+<style>
+  .uebersicht-kopf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .szenen{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+  .szene-karte h3{margin:0 0 4px;font-size:17px}
+  .szene-karte p{margin:0;color:var(--grau);font-size:14px}
+  .leer{color:var(--grau);text-align:center;padding:30px}
+  .editor{display:grid;grid-template-columns:1.15fr 1fr;gap:18px;align-items:start}
+  @media (max-width:860px){.editor{grid-template-columns:1fr}}
+  .klebrig{position:sticky;top:10px}
+  @media (max-width:860px){.klebrig{position:static}}
+  .spalte>.karte{margin-bottom:16px}
+  .notiz{border:2px solid var(--linie);border-radius:16px;padding:12px;margin-bottom:12px}
+  .notiz-kopf{display:flex;justify-content:space-between;align-items:center;font-weight:700;gap:8px}
+  .farben{display:flex;gap:6px;margin-top:4px}
+  .farben button{width:30px;height:30px;padding:0;border-radius:50%;border:3px solid transparent}
+  .farben button.aktiv{border-color:var(--text)}
+  .punktfarbe{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+  #infoKnopf{position:absolute;top:10px;right:10px;width:44px;height:44px;border-radius:50%;padding:0;background:#2F6FD6;color:#fff;font:700 24px Georgia,serif;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:2}
+  #infoFenster{position:absolute;top:62px;right:10px;left:10px;max-width:420px;margin-left:auto;background:#FFFDF6;border-radius:16px;box-shadow:0 6px 22px rgba(0,0,0,.2);padding:16px 18px;z-index:2;max-height:calc(100% - 74px);overflow:auto;border-top:8px solid #2F6FD6}
+  #infoFenster h3{margin:0 0 8px;font-size:19px} #infoFenster p{margin:0 0 10px;font-size:15px;line-height:1.45;white-space:pre-wrap}
+  .groesse{display:flex;gap:10px;align-items:center} .groesse input{flex:1}
+  .speicherleiste{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .speicherleiste .status{margin:0}
+  @media print{body *{visibility:hidden} #druckBereich,#druckBereich *{visibility:visible} #druckBereich{position:fixed;inset:0;display:block!important;text-align:center;padding-top:40px}}
+  #druckBereich{display:none} #druckBereich h1{font-size:34px} #druckBereich img{width:360px;height:360px;image-rendering:pixelated} #druckBereich p{font-size:18px}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+</head>
+<body>
+<div class="streifen"><i style="background:#F28C28"></i><i style="background:#1FA2A6"></i><i style="background:#7B5CC9"></i><i style="background:#3FA34D"></i><i style="background:#2F6FD6"></i><i style="background:#E04F7A"></i></div>
+<div class="kopf">
+  <div style="flex:1"><h1>AR Creator-Labor</h1><p>Tiere mit Notizen und Tönen für den Raum gestalten</p></div>
+  <button id="abmelden" class="klein" hidden>Abmelden</button>
+</div>
+
+<main>
+  <!-- Einrichten -->
+  <form id="einrichten" class="karte mitte" hidden>
+    <h2>Labor einrichten</h2>
+    <p class="hinweis" style="margin-top:0">Lege das gemeinsame Passwort für alle Lehrpersonen fest (mindestens 8 Zeichen). Das geht nur ein einziges Mal.</p>
+    <label for="pw1">Passwort</label><input type="password" id="pw1" autocomplete="new-password">
+    <label for="pw2">Passwort wiederholen</label><input type="password" id="pw2" autocomplete="new-password">
+    <div class="reihe"><button class="haupt" type="submit">Einrichten</button></div>
+    <div class="fehler" id="einrichtenFehler"></div>
+  </form>
+
+  <!-- Anmelden -->
+  <form id="anmelden" class="karte mitte" hidden>
+    <h2>Anmelden</h2>
+    <label for="pw">Passwort</label><input type="password" id="pw" autocomplete="current-password">
+    <div class="reihe"><button class="haupt" type="submit">Öffnen</button></div>
+    <div class="fehler" id="anmeldenFehler"></div>
+  </form>
+
+  <!-- Übersicht -->
+  <section id="uebersicht" hidden>
+    <div class="uebersicht-kopf">
+      <h2 style="margin:0">Meine Szenen</h2>
+      <button id="neueSzene" class="haupt">+ Neue Szene</button>
+    </div>
+    <div id="szenenListe" class="szenen"></div>
+  </section>
+
+  <!-- Editor -->
+  <section id="editor" hidden>
+    <div class="uebersicht-kopf">
+      <button id="zurueck">← Zur Übersicht</button>
+      <div class="speicherleiste"><span class="status" id="speicherStatus"></span><button id="teilen" hidden>QR-Code &amp; Link</button><button id="speichern" class="haupt">Speichern</button></div>
+    </div>
+    <div class="editor">
+      <div class="klebrig">
+        <div class="karte">
+          <div id="ansicht" class="ansicht"><button id="infoKnopf" aria-label="Info zum Tier" title="Info zum Tier">i</button><div id="infoFenster" hidden></div></div>
+          <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf einen Punkt: Die Notiz öffnet sich und der Ton spielt. Tippe auf die Karte, um sie zu schließen.</p>
+          <div class="ar-bereich">
+            <a id="arLink" rel="ar" href="#" hidden><img id="arBild" alt="Im Raum ansehen"></a>
+            <div class="status" id="arStatus"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="spalte">
+        <div class="karte">
+          <h2>1 · Szene</h2>
+          <label for="titel">Titel (sehen auch die Kinder)</label><input type="text" id="titel" maxlength="60">
+          <label for="modellWahl">Modell</label>
+          <select id="modellWahl"></select>
+          <input type="file" id="glbDatei" accept=".glb,model/gltf-binary" hidden>
+          <label for="groesse">Größe im Raum</label>
+          <div class="groesse"><input type="range" id="groesse" min="15" max="200" step="5"><span id="groesseText" style="min-width:64px;text-align:right"></span></div>
+        </div>
+
+        <div class="karte">
+          <h2>2 · Info zum Tier</h2>
+          <label style="display:flex;gap:8px;align-items:center;color:var(--text)"><input type="checkbox" id="infoAn" style="width:20px;height:20px"> ⓘ-Schild neben dem Tier anzeigen</label>
+          <div id="infoFelder">
+            <label for="infoTitel">Überschrift</label><input type="text" id="infoTitel" maxlength="30">
+            <label for="infoText">Allgemeine Informationen</label><textarea id="infoText" maxlength="600" style="min-height:120px"></textarea>
+            <div id="infoTon"></div>
+          </div>
+        </div>
+
+        <div class="karte">
+          <h2>3 · Punkte am Tier</h2>
+          <div id="notizListe"></div>
+          <div class="reihe"><button id="neuWort">+ Wort</button><button id="neuNotiz">+ Notiz</button></div>
+          <p class="hinweis"><b>Wort</b>: kleines Etikett mit einem Begriff. <b>Notiz</b>: Karte mit Überschrift und Text. Mit „📍 Auf das Tier setzen“ und einem Tipp in die Vorschau legst du fest, wo der Punkt sitzt.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Teilen -->
+<div id="teilenDialog" class="dialog-huelle" hidden>
+  <div class="dialog">
+    <h2>Szene teilen</h2>
+    <p class="hinweis" style="margin-top:0">Die Kinder scannen den QR-Code mit dem iPad (Kamera-App) oder öffnen den Link in Safari. Ein Passwort brauchen sie nicht – wer den Link hat, sieht nur diese Szene.</p>
+    <img id="qrBild" class="qr" alt="QR-Code">
+    <div class="link" id="linkText"></div>
+    <div class="reihe" style="justify-content:center">
+      <button id="linkKopieren">Link kopieren</button>
+      <a id="qrLaden" class="knopf" download="qr-code.png">QR-Code speichern</a>
+      <button id="qrDrucken">Drucken</button>
+      <a id="ansehenLink" class="knopf" target="_blank" rel="noopener">Ansehen</a>
+    </div>
+    <div class="reihe" style="justify-content:flex-end;margin-top:16px"><button id="teilenZu" class="haupt">Fertig</button></div>
+  </div>
+</div>
+<div id="druckBereich"><h1 id="druckTitel"></h1><img id="druckQR" alt=""><p>Mit dem iPad scannen und das Tier in den Raum stellen.</p></div>
+
+<script type="module">
+import { Szene3D, FARBEN, BEISPIELMODELLE, neueSzene, kannAR, arKnopfBild } from "./szene3d.js";
+
+const API = "api.php";
+const $ = (id) => document.getElementById(id);
+const MAX_NOTIZEN = 12;
+let token = null;
+try { token = localStorage.getItem("labor-token"); } catch (e) {}
+
+async function api(aktion, felder = {}, dateien = {}) {
+  const fd = new FormData();
+  fd.append("aktion", aktion);
+  if (token) fd.append("token", token);
+  for (const [k, v] of Object.entries(felder)) fd.append(k, v);
+  for (const [k, v] of Object.entries(dateien)) fd.append(k, v, k);
+  let r;
+  try { r = await fetch(API, { method: "POST", body: fd }); } catch (e) { throw new Error("Keine Verbindung zum Server."); }
+  let d; try { d = await r.json(); } catch (e) { throw new Error("Der Server hat unerwartet geantwortet (" + r.status + ")."); }
+  if (r.status === 401 && aktion !== "anmelden") { zeigeAnmelden(); throw new Error(d.fehler || "Bitte neu anmelden."); }
+  if (!d.ok) throw new Error(d.fehler || "Unbekannter Fehler");
+  return d;
+}
+const merkeToken = (t) => { token = t; try { localStorage.setItem("labor-token", t); } catch (e) {} };
+
+function zeige(id) {
+  for (const s of ["einrichten", "anmelden", "uebersicht", "editor"]) $(s).hidden = s !== id;
+  $("abmelden").hidden = !(id === "uebersicht" || id === "editor");
+}
+function zeigeAnmelden() { token = null; try { localStorage.removeItem("labor-token"); } catch (e) {} zeige("anmelden"); $("pw").focus(); }
+
+// ---------- Start ----------
+(async () => {
+  try {
+    const r = await fetch(API + "?aktion=status").then((x) => x.json());
+    if (!r.eingerichtet) { zeige("einrichten"); return; }
+  } catch (e) {
+    document.querySelector("main").innerHTML = '<div class="karte mitte"><h2>Server nicht erreichbar</h2><p class="hinweis">Das Creator-Labor braucht PHP auf dem Webspace. Bitte über https://ar.werkraum-lehre.at/labor/ öffnen.</p></div>';
+    return;
+  }
+  if (token) uebersicht(); else zeigeAnmelden();
+})();
+
+$("einrichten").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const a = $("pw1").value, b = $("pw2").value;
+  if (a !== b) { $("einrichtenFehler").textContent = "Die beiden Passwörter sind verschieden."; return; }
+  try { merkeToken((await api("einrichten", { passwort: a })).token); uebersicht(); }
+  catch (err) { $("einrichtenFehler").textContent = err.message; }
+});
+$("anmelden").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("anmeldenFehler").textContent = "";
+  try { merkeToken((await api("anmelden", { passwort: $("pw").value })).token); $("pw").value = ""; uebersicht(); }
+  catch (err) { $("anmeldenFehler").textContent = err.message; }
+});
+$("abmelden").addEventListener("click", () => { if (!ungespeichertOk()) return; zeigeAnmelden(); });
+
+// ---------- Übersicht ----------
+async function uebersicht() {
+  zeige("uebersicht");
+  const liste = $("szenenListe");
+  liste.innerHTML = '<p class="leer">Lade …</p>';
+  let szenen;
+  try { szenen = (await api("liste")).szenen; } catch (e) { liste.innerHTML = `<p class="leer">${e.message}</p>`; return; }
+  liste.innerHTML = "";
+  if (!szenen.length) { liste.innerHTML = '<p class="leer">Noch keine Szenen. Lege mit „+ Neue Szene“ die erste an.</p>'; return; }
+  for (const s of szenen) {
+    const k = document.createElement("div"); k.className = "karte szene-karte";
+    const h = document.createElement("h3"); h.textContent = s.titel;
+    const p = document.createElement("p");
+    p.textContent = `${s.modell || "Modell"} · ${s.notizen} ${s.notizen === 1 ? "Punkt" : "Punkte"} · ${new Date(s.geaendert * 1000).toLocaleDateString("de-AT")}`;
+    const r = document.createElement("div"); r.className = "reihe";
+    const b1 = document.createElement("button"); b1.className = "haupt klein"; b1.textContent = "Bearbeiten"; b1.onclick = () => oeffneEditor(s.id);
+    const b2 = document.createElement("button"); b2.className = "klein"; b2.textContent = "QR-Code & Link"; b2.onclick = () => teilen(s.id, s.titel);
+    const b3 = document.createElement("button"); b3.className = "klein gefahr"; b3.textContent = "Löschen";
+    b3.onclick = async () => {
+      if (!confirm(`„${s.titel}“ wirklich löschen? Der QR-Code funktioniert danach nicht mehr. Das kann nicht rückgängig gemacht werden.`)) return;
+      try { await api("loeschen", { id: s.id }); uebersicht(); } catch (e) { alert(e.message); }
+    };
+    r.append(b1, b2, b3); k.append(h, p, r); liste.appendChild(k);
+  }
+}
+$("neueSzene").addEventListener("click", () => oeffneEditor(null));
+
+// ---------- Editor ----------
+let s3d = null, szene = null, szeneId = null, toene = new Map(), neueToene = new Set();
+let eigenesModell = null, modellNeu = false, geaendert = false, bibliothek = [];
+
+function ungespeichertOk() { return !geaendert || confirm("Es gibt ungespeicherte Änderungen. Trotzdem verlassen?"); }
+window.addEventListener("beforeunload", (e) => { if (geaendert) { e.preventDefault(); e.returnValue = ""; } });
+function veraendert() { geaendert = true; $("speicherStatus").textContent = "Nicht gespeichert"; arSpaeter(); }
+
+async function ladeBibliothek() {
+  if (bibliothek.length) return;
+  let alle = [];
+  try { alle = (await fetch("modelle/modelle.json", { cache: "no-store" }).then((r) => r.json())).modelle || []; } catch (e) { alle = []; }
+  // Nur Modelle anzeigen, deren Datei wirklich hochgeladen ist
+  const da = await Promise.all(alle.map((m) => fetch("modelle/" + m.datei, { method: "HEAD", cache: "no-store" }).then((r) => r.ok).catch(() => false)));
+  bibliothek = alle.filter((m, i) => da[i]);
+}
+function fuelleModellWahl() {
+  const w = $("modellWahl"); w.innerHTML = "";
+  const gruppen = {};
+  for (const m of bibliothek) (gruppen[m.gruppe || "Modelle"] ||= []).push(m);
+  for (const [g, liste] of Object.entries(gruppen)) {
+    const og = document.createElement("optgroup"); og.label = g;
+    for (const m of liste) { const o = document.createElement("option"); o.value = "bibliothek:" + m.id; o.textContent = m.name; og.appendChild(o); }
+    w.appendChild(og);
+  }
+  const og = document.createElement("optgroup"); og.label = "Zum Ausprobieren";
+  for (const [id, m] of Object.entries(BEISPIELMODELLE)) { const o = document.createElement("option"); o.value = "beispiel:" + id; o.textContent = m.name; og.appendChild(o); }
+  w.appendChild(og);
+  const og2 = document.createElement("optgroup"); og2.label = "Eigenes Modell";
+  const oe = document.createElement("option"); oe.value = "eigen"; oe.textContent = szene.modell.quelle === "eigen" ? `Eigenes: ${szene.modell.name || "modell.glb"}` : "Eigene GLB-Datei hochladen …"; og2.appendChild(oe);
+  if (szene.modell.quelle === "eigen") { const on = document.createElement("option"); on.value = "eigen-neu"; on.textContent = "Andere GLB-Datei hochladen …"; og2.appendChild(on); }
+  w.appendChild(og2);
+  w.value = szene.modell.quelle === "eigen" ? "eigen" : `${szene.modell.quelle}:${szene.modell.id}`;
+}
+function modellQuelle() {
+  const m = szene.modell;
+  if (m.quelle === "beispiel") return BEISPIELMODELLE[m.id]?.urls || BEISPIELMODELLE.ente.urls;
+  if (m.quelle === "bibliothek") return ["modelle/" + m.datei];
+  if (eigenesModell) return eigenesModell.slice(0);
+  return [`daten/${szeneId}/modell.glb?v=${Date.now()}`];
+}
+
+async function oeffneEditor(id) {
+  zeige("editor");
+  szeneId = id; toene = new Map(); neueToene = new Set(); eigenesModell = null; modellNeu = false; geaendert = false;
+  $("teilen").hidden = !id;
+  $("speicherStatus").textContent = id ? "Lade …" : "";
+  if (!s3d) s3d = new Szene3D($("ansicht"), { tonQuelle: (d) => toene.get(d) || null });
+  await ladeBibliothek();
+  if (id) {
+    try {
+      szene = await fetch(`daten/${id}/szene.json?v=${Date.now()}`).then((r) => { if (!r.ok) throw new Error(); return r.json(); });
+      const dateien = [szene.info?.ton, ...szene.notizen.map((n) => n.ton)].filter((t) => t?.art === "datei").map((t) => t.datei);
+      await Promise.all(dateien.map(async (d) => {
+        const r = await fetch(`daten/${id}/${d}`); if (!r.ok) return;
+        const endung = d.split(".").pop();
+        toene.set(d, { daten: new Uint8Array(await r.arrayBuffer()), mime: endung === "wav" ? "audio/wav" : endung === "mp3" ? "audio/mpeg" : "audio/mp4", endung });
+      }));
+    } catch (e) { alert("Die Szene konnte nicht geladen werden."); uebersicht(); return; }
+  } else {
+    szene = neueSzene();
+    if (bibliothek.length) { const m = bibliothek[0]; szene.modell = { quelle: "bibliothek", id: m.id, name: m.name, datei: m.datei }; }
+    else szene.modell = { quelle: "beispiel", id: "ente", name: BEISPIELMODELLE.ente.name };
+  }
+  fuelleFormular();
+  await ladeAktuellesModell(!id);
+  $("speicherStatus").textContent = id ? "Gespeichert" : "Neu – noch nicht gespeichert";
+}
+
+async function ladeAktuellesModell(standardPunkte) {
+  $("arStatus").textContent = "Modell wird geladen …";
+  try {
+    await s3d.ladeModell(modellQuelle());
+    s3d.zeige(szene);
+    if (standardPunkte) szene.notizen.forEach((n, i) => { n.punkt = s3d.standardPunkt(i); });
+    s3d.aktualisiere();
+    $("arStatus").textContent = "";
+    arSpaeter(0);
+  } catch (e) {
+    $("arStatus").textContent = szene.modell.quelle === "bibliothek"
+      ? `Das Modell „${szene.modell.name}“ wurde nicht gefunden. Liegt die Datei modelle/${szene.modell.datei} auf dem Server?`
+      : "Das Modell konnte nicht geladen werden: " + e.message;
+  }
+}
+
+function fuelleFormular() {
+  $("titel").value = szene.titel || "";
+  fuelleModellWahl();
+  $("groesse").value = Math.round((szene.groesse || 0.45) * 100); groesseText();
+  $("infoAn").checked = !!szene.info.an; $("infoFelder").hidden = !szene.info.an;
+  $("infoTitel").value = szene.info.titel || ""; $("infoText").value = szene.info.text || "";
+  $("infoKnopf").hidden = !szene.info.an; $("infoFenster").hidden = true;
+  baueTonWahl($("infoTon"), szene.info);
+  zeigeNotizen();
+}
+function groesseText() { const v = +$("groesse").value; $("groesseText").textContent = v >= 100 ? (v / 100).toLocaleString("de-AT") + " m" : v + " cm"; }
+
+$("titel").addEventListener("input", (e) => { szene.titel = e.target.value; veraendert(); });
+$("groesse").addEventListener("input", () => { groesseText(); });
+$("groesse").addEventListener("change", (e) => { s3d.setzeGroesse(+e.target.value / 100); veraendert(); });
+$("modellWahl").addEventListener("change", async (e) => {
+  const v = e.target.value;
+  if (v === "eigen" && szene.modell.quelle === "eigen") return;
+  if (v === "eigen" || v === "eigen-neu") { fuelleModellWahl(); $("glbDatei").value = ""; $("glbDatei").click(); return; }
+  if (szene.notizen.length && !confirm("Beim Wechsel des Modells werden alle Punkte neu verteilt. Weiter?")) { fuelleModellWahl(); return; }
+  const [quelle, id] = v.split(":");
+  if (quelle === "bibliothek") { const m = bibliothek.find((x) => x.id === id); szene.modell = { quelle, id, name: m.name, datei: m.datei }; }
+  else szene.modell = { quelle, id, name: BEISPIELMODELLE[id].name };
+  eigenesModell = null; modellNeu = false;
+  fuelleModellWahl(); veraendert(); await ladeAktuellesModell(true);
+});
+$("glbDatei").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  if (f.size > 40 * 1024 * 1024) { alert("Die Datei ist zu groß (höchstens 40 MB)."); return; }
+  const buf = await f.arrayBuffer();
+  if (new TextDecoder().decode(new Uint8Array(buf, 0, 4)) !== "glTF") { alert("Das ist keine GLB-Datei. Bitte eine .glb-Datei wählen."); return; }
+  if (szene.notizen.length && !confirm("Beim Wechsel des Modells werden alle Punkte neu verteilt. Weiter?")) return;
+  eigenesModell = buf; modellNeu = true;
+  szene.modell = { quelle: "eigen", name: f.name.replace(/\.glb$/i, "") };
+  fuelleModellWahl(); veraendert(); await ladeAktuellesModell(true);
+});
+
+// ---------- Info ----------
+$("infoAn").addEventListener("change", (e) => { szene.info.an = e.target.checked; $("infoFelder").hidden = !szene.info.an; $("infoKnopf").hidden = !szene.info.an; s3d.aktualisiere(); veraendert(); });
+$("infoTitel").addEventListener("input", (e) => { szene.info.titel = e.target.value; s3d.aktualisiere(); veraendert(); fensterNeu(); });
+$("infoText").addEventListener("input", (e) => { szene.info.text = e.target.value; s3d.aktualisiere(); veraendert(); fensterNeu(); });
+function fensterNeu() {
+  const f = $("infoFenster"); f.innerHTML = "";
+  const h = document.createElement("h3"); h.textContent = szene.info.titel || "Info";
+  const t = document.createElement("p"); t.textContent = szene.info.text || "";
+  const z = document.createElement("button"); z.textContent = "Schließen"; z.onclick = () => { f.hidden = true; };
+  f.append(h, t, z);
+}
+$("infoKnopf").addEventListener("click", () => {
+  const f = $("infoFenster");
+  if (f.hidden) { fensterNeu(); f.hidden = false; s3d.spieleTon(szene.info); } else f.hidden = true;
+});
+
+// ---------- Töne ----------
+function baueTonWahl(el, ziel) {
+  el.innerHTML = "";
+  const l = document.createElement("label"); l.textContent = "Ton beim Antippen";
+  const s = document.createElement("select");
+  const hatAufnahme = ziel.ton?.art === "datei" && toene.has(ziel.ton.datei);
+  s.innerHTML = `<option value="ding">Kurzer Signalton</option><option value="datei" ${hatAufnahme ? "" : "disabled"}>${hatAufnahme ? "Eigene Aufnahme" : "Eigene Aufnahme – erst aufnehmen"}</option><option value="kein">Kein Ton</option>`;
+  s.value = ziel.ton?.art === "datei" && !hatAufnahme ? "ding" : (ziel.ton?.art || "ding");
+  if (ziel._letzteAufnahme && !hatAufnahme) s.querySelector('[value="datei"]').disabled = false;
+  s.addEventListener("change", () => {
+    if (s.value === "datei") ziel.ton = { art: "datei", datei: ziel._letzteAufnahme || ziel.ton.datei };
+    else ziel.ton = { art: s.value };
+    s3d.aktualisiere(); veraendert();
+  });
+  const r = document.createElement("div"); r.className = "reihe";
+  const auf = document.createElement("button"); auf.textContent = "🎙 Aufnehmen";
+  auf.addEventListener("click", () => aufnahme(ziel, auf, () => baueTonWahl(el, ziel)));
+  const hoer = document.createElement("button"); hoer.textContent = "▶ Anhören";
+  hoer.addEventListener("click", () => s3d.spieleTon(ziel));
+  r.append(auf, hoer);
+  el.append(l, s, r);
+  if (ziel.ton?.art === "datei" && toene.get(ziel.ton.datei)?.endung === "webm") {
+    const w = document.createElement("div"); w.className = "warnung";
+    w.textContent = "Dieser Browser nimmt im WebM-Format auf, das Apple nicht abspielt. Bitte direkt am iPad aufnehmen.";
+    el.appendChild(w);
+  }
+}
+let rekorder = null;
+async function aufnahme(ziel, knopf, fertig) {
+  if (rekorder) { rekorder.stop(); return; }
+  try {
+    const strom = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const typ = ["audio/mp4", "audio/aac", "audio/mpeg", "audio/webm"].find((t) => window.MediaRecorder?.isTypeSupported?.(t));
+    rekorder = new MediaRecorder(strom, typ ? { mimeType: typ } : undefined);
+    const stuecke = [];
+    rekorder.ondataavailable = (e) => e.data.size && stuecke.push(e.data);
+    rekorder.onstop = async () => {
+      strom.getTracks().forEach((t) => t.stop());
+      const mime = rekorder.mimeType || typ || "audio/mp4";
+      const endung = /mp4|m4a|aac/.test(mime) ? "m4a" : /mpeg|mp3/.test(mime) ? "mp3" : /wav/.test(mime) ? "wav" : "webm";
+      const daten = new Uint8Array(await new Blob(stuecke, { type: mime }).arrayBuffer());
+      const schluessel = Math.random().toString(36).slice(2, 10).replace(/[^a-z0-9]/g, "") || "t" + Date.now();
+      const datei = `ton_${schluessel}.${endung}`;
+      toene.set(datei, { daten, mime, endung });
+      if (endung !== "webm") neueToene.add(datei);
+      ziel.ton = { art: "datei", datei }; ziel._letzteAufnahme = datei;
+      rekorder = null; s3d.aktualisiere(); veraendert(); fertig();
+    };
+    rekorder.start(); knopf.textContent = "⏹ Stopp"; knopf.classList.add("aufnahme");
+  } catch (e) {
+    rekorder = null;
+    alert("Das Mikrofon ist nicht verfügbar. Bitte den Zugriff erlauben.");
+  }
+}
+
+// ---------- Notizen ----------
+let platzieren = null;
+function zeigeNotizen() {
+  const liste = $("notizListe"); liste.innerHTML = "";
+  if (!szene.notizen.length) liste.innerHTML = '<p class="hinweis" style="margin-top:0">Noch keine Punkte.</p>';
+  szene.notizen.forEach((n, i) => {
+    const el = document.createElement("div"); el.className = "notiz";
+    const wort = n.typ === "wort";
+    el.innerHTML = `
+      <div class="notiz-kopf"><span><span class="punktfarbe" style="background:${FARBEN[n.farbe % FARBEN.length]}"></span>${wort ? "Wort" : "Notiz"} ${i + 1}</span>
+        <span><button class="klein" data-art>${wort ? "→ Notiz" : "→ Wort"}</button> <button class="klein gefahr" data-weg>Entfernen</button></span></div>
+      <label>${wort ? "Wort" : "Überschrift"}</label><input type="text" data-feld="titel" maxlength="${wort ? 18 : 22}">
+      ${wort ? "" : '<label>Text</label><textarea data-feld="text" maxlength="260"></textarea>'}
+      <label>Farbe</label><div class="farben">${FARBEN.map((f, k) => `<button data-farbe="${k}" class="${k === n.farbe % FARBEN.length ? "aktiv" : ""}" style="background:${f}" aria-label="Farbe ${k + 1}"></button>`).join("")}</div>
+      <div class="reihe"><button data-setzen class="${platzieren === n ? "haupt" : ""}">📍 ${platzieren === n ? "Jetzt in der Vorschau aufs Tier tippen …" : "Auf das Tier setzen"}</button></div>
+      <div data-ton></div>`;
+    el.querySelector('[data-feld="titel"]').value = n.titel || "";
+    if (!wort) el.querySelector('[data-feld="text"]').value = n.text || "";
+    el.querySelectorAll("[data-feld]").forEach((f) => f.addEventListener("input", () => { n[f.dataset.feld] = f.value; s3d.aktualisiere(); veraendert(); }));
+    el.querySelectorAll("[data-farbe]").forEach((b) => b.addEventListener("click", () => { n.farbe = +b.dataset.farbe; zeigeNotizen(); s3d.aktualisiere(); veraendert(); }));
+    el.querySelector("[data-art]").addEventListener("click", () => {
+      n.typ = wort ? "notiz" : "wort";
+      if (n.typ === "notiz" && !n.text) n.text = "Hier steht der Text der Notiz.";
+      zeigeNotizen(); s3d.aktualisiere(); veraendert();
+    });
+    el.querySelector("[data-weg]").addEventListener("click", () => {
+      if (!confirm(`${wort ? "Wort" : "Notiz"} ${i + 1} entfernen?`)) return;
+      szene.notizen.splice(i, 1); if (platzieren === n) { platzieren = null; s3d.beimPlatzieren = null; }
+      zeigeNotizen(); s3d.aktualisiere(); veraendert();
+    });
+    el.querySelector("[data-setzen]").addEventListener("click", () => {
+      if (platzieren === n) { platzieren = null; s3d.beimPlatzieren = null; zeigeNotizen(); return; }
+      platzieren = n;
+      s3d.beimPlatzieren = (p) => {
+        if (!p) { $("arStatus").textContent = "Daneben – bitte direkt auf das Tier tippen."; return; }
+        n.punkt = p; platzieren = null; $("arStatus").textContent = "";
+        zeigeNotizen(); s3d.aktualisiere(); veraendert();
+      };
+      zeigeNotizen();
+      $("arStatus").textContent = `Tippe in der Vorschau auf die Stelle für ${wort ? "Wort" : "Notiz"} ${i + 1}.`;
+      $("ansicht").scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    baueTonWahl(el.querySelector("[data-ton]"), n);
+    liste.appendChild(el);
+  });
+  $("neuWort").disabled = $("neuNotiz").disabled = szene.notizen.length >= MAX_NOTIZEN;
+}
+function neuerPunkt(typ) {
+  const i = szene.notizen.length;
+  const n = typ === "wort"
+    ? { typ, titel: "Wort", text: "", farbe: i % FARBEN.length, ton: { art: "ding" }, punkt: null }
+    : { typ, titel: "Überschrift", text: "Hier steht der Text der Notiz.", farbe: i % FARBEN.length, ton: { art: "ding" }, punkt: null };
+  szene.notizen.push(n);
+  n.punkt = s3d.standardPunkt(i);
+  zeigeNotizen(); s3d.aktualisiere(); veraendert();
+  $("notizListe").lastElementChild?.querySelector("input")?.focus();
+}
+$("neuWort").addEventListener("click", () => neuerPunkt("wort"));
+$("neuNotiz").addEventListener("click", () => neuerPunkt("notiz"));
+
+// ---------- AR-Ansicht (nur auf iPad/iPhone) ----------
+const ar = kannAR();
+$("arBild").src = arKnopfBild("📱 Im Raum testen");
+let arZeit = null, arNr = 0, arURL = null;
+function arSpaeter(ms = 1200) {
+  if (!ar) { $("arStatus").textContent ||= ""; return; }
+  clearTimeout(arZeit);
+  $("arLink").hidden = true;
+  arZeit = setTimeout(async () => {
+    const nr = ++arNr;
+    $("arStatus").textContent = "AR-Ansicht wird vorbereitet …";
+    try {
+      const blob = await s3d.baueUSDZ();
+      if (nr !== arNr) return;
+      if (arURL) URL.revokeObjectURL(arURL);
+      arURL = URL.createObjectURL(blob);
+      $("arLink").href = arURL; $("arLink").hidden = false;
+      $("arStatus").textContent = "";
+    } catch (e) { $("arStatus").textContent = "AR-Ansicht nicht möglich: " + e.message; }
+  }, ms);
+}
+
+// ---------- Speichern ----------
+$("speichern").addEventListener("click", async () => {
+  const knopf = $("speichern");
+  knopf.disabled = true; $("speicherStatus").textContent = "Speichere …";
+  try {
+    const kopie = JSON.parse(JSON.stringify(szene, (k, v) => (k.startsWith("_") ? undefined : v)));
+    const dateien = {};
+    if (szene.modell.quelle === "eigen" && modellNeu && eigenesModell) dateien.modell = new Blob([eigenesModell], { type: "model/gltf-binary" });
+    const verwendet = new Set([szene.info.ton, ...szene.notizen.map((n) => n.ton)].filter((t) => t?.art === "datei").map((t) => t.datei));
+    for (const d of neueToene) {
+      if (!verwendet.has(d)) continue;
+      const t = toene.get(d); const [, schl, endung] = d.match(/^ton_([a-z0-9]+)\.(\w+)$/);
+      dateien[`ton_${schl}_${endung}`] = new Blob([t.daten], { type: t.mime });
+    }
+    // Aufnahmen im WebM-Format kann Apple nicht abspielen – diese als Signalton speichern
+    for (const z of [kopie.info, ...kopie.notizen]) if (z.ton?.art === "datei" && toene.get(z.ton.datei)?.endung === "webm") z.ton = { art: "ding" };
+    const felder = { szene: JSON.stringify(kopie) };
+    if (szeneId) felder.id = szeneId;
+    const r = await api("speichern", felder, dateien);
+    const neu = !szeneId;
+    szeneId = r.id; modellNeu = false; neueToene.clear(); geaendert = false;
+    if (szene.modell.quelle === "eigen") eigenesModell = eigenesModell || null;
+    $("speicherStatus").textContent = "Gespeichert"; $("teilen").hidden = false;
+    if (neu) teilen(szeneId, szene.titel);
+  } catch (e) {
+    $("speicherStatus").textContent = "Fehler beim Speichern";
+    alert(e.message);
+  } finally { knopf.disabled = false; }
+});
+$("zurueck").addEventListener("click", () => { if (!ungespeichertOk()) return; geaendert = false; platzieren = null; if (s3d) s3d.beimPlatzieren = null; uebersicht(); });
+$("teilen").addEventListener("click", () => teilen(szeneId, szene.titel));
+
+// ---------- Teilen ----------
+function teilen(id, titel) {
+  const url = new URL(`szene.html?s=${id}`, location.href).href;
+  $("linkText").textContent = url;
+  $("ansehenLink").href = url;
+  let bild = "";
+  try { const qr = qrcode(0, "M"); qr.addData(url); qr.make(); bild = qr.createDataURL(8, 4); } catch (e) {}
+  $("qrBild").src = bild; $("druckQR").src = bild; $("druckTitel").textContent = titel || "";
+  $("qrLaden").href = bild; $("qrLaden").download = `qr-${(titel || "szene").toLowerCase().replace(/[^a-z0-9äöüß]+/g, "-")}.gif`;
+  $("teilenDialog").hidden = false;
+}
+$("teilenZu").addEventListener("click", () => { $("teilenDialog").hidden = true; });
+$("linkKopieren").addEventListener("click", async () => {
+  try { await navigator.clipboard.writeText($("linkText").textContent); $("linkKopieren").textContent = "Kopiert ✓"; setTimeout(() => { $("linkKopieren").textContent = "Link kopieren"; }, 1500); }
+  catch (e) { prompt("Link zum Kopieren:", $("linkText").textContent); }
+});
+$("qrDrucken").addEventListener("click", () => window.print());
+</script>
+</body>
+</html>

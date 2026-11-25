@@ -1,0 +1,36 @@
+/* ===== AR Creator-Labor · gemeinsames Aussehen ===== */
+:root{--bg:#F6F4EF;--text:#22252B;--grau:#5B6070;--linie:#DDD8CC;--tuerkis:#1FA2A6;--rot:#C0392B}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+[hidden]{display:none!important}
+.streifen{display:flex;height:8px}.streifen i{flex:1}
+.kopf{max-width:1160px;margin:0 auto;padding:16px 20px 6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.kopf h1{font-size:23px;margin:0;flex:1}
+.kopf p{margin:2px 0 0;color:var(--grau);font-size:14px}
+main{max-width:1160px;margin:0 auto;padding:10px 20px 48px}
+.karte{background:#fff;border-radius:20px;box-shadow:0 4px 18px rgba(30,30,50,.10);padding:18px}
+.mitte{max-width:400px;margin:40px auto}
+h2{font-size:18px;margin:0 0 10px}
+label{font-size:14px;color:var(--grau);display:block;margin:10px 0 4px}
+input[type=text],input[type=password],textarea,select{width:100%;font:inherit;font-size:16px;padding:9px 11px;border:2px solid var(--linie);border-radius:12px;background:#fff;color:var(--text)}
+textarea{min-height:64px;resize:vertical}
+button,.knopf{font:inherit;font-size:15px;font-weight:700;border:0;border-radius:999px;padding:9px 16px;cursor:pointer;background:#EDEAE2;color:var(--text);text-decoration:none;display:inline-block;line-height:1.2}
+button:disabled{opacity:.5;cursor:default}
+button.haupt,.knopf.haupt{background:var(--tuerkis);color:#fff}
+button.gefahr{background:#F7E1DE;color:var(--rot)}
+button.aufnahme{background:#E04F7A;color:#fff}
+button.klein{font-size:13px;padding:6px 12px}
+.reihe{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.hinweis{font-size:14px;color:var(--grau);margin:8px 0 0}
+.fehler{color:var(--rot);font-weight:600;font-size:15px;min-height:20px;margin-top:10px}
+.warnung{background:#FFF4E5;border-radius:12px;padding:10px 12px;font-size:14px;margin-top:10px}
+.ansicht{width:100%;aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:#EAE6DC;position:relative;touch-action:none}
+.ansicht canvas{display:block;width:100%;height:100%}
+.ar-bereich{text-align:center;margin-top:12px}
+.ar-bereich img{max-width:320px;width:100%;height:auto}
+.status{font-size:14px;color:var(--grau);margin-top:6px;min-height:20px}
+.dialog-huelle{position:fixed;inset:0;background:rgba(20,22,28,.45);display:grid;place-items:center;padding:20px;z-index:50}
+.dialog{background:#fff;border-radius:20px;padding:22px;max-width:460px;width:100%;max-height:calc(100vh - 40px);overflow:auto}
+.dialog h2{margin-bottom:6px}
+.qr{display:block;margin:12px auto;width:240px;height:240px;image-rendering:pixelated}
+.link{font-size:13px;word-break:break-all;background:#F3F1EC;border-radius:10px;padding:8px 10px}
