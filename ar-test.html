@@ -59,7 +59,7 @@
   <section class="karte">
     <h2>1 · Vorschau</h2>
     <div id="ansicht"><button id="infoKnopf" aria-label="Info zum Tier" title="Info zum Tier">i</button><div id="infoFenster" hidden></div></div>
-    <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf einen farbigen Punkt: Der Text öffnet sich und der Ton spielt. Tippe auf den Text, um ihn zu schließen.</p>
+    <p class="hinweis">Ziehen zum Drehen, zwei Finger zum Zoomen. Tippe auf einen farbigen Punkt: Der Text öffnet sich und der Ton spielt. In der Vorschau schließt ein Tipp auf den Text ihn wieder, im Raum schließt er sich nach einigen Sekunden von selbst.</p>
 
     <label for="modellWahl">Modell</label>
     <select id="modellWahl">
@@ -102,7 +102,7 @@
       <label><input type="checkbox"> Am Tier sind die farbigen Punkte zu sehen, die Textkarten sind noch versteckt.</label>
       <label><input type="checkbox"> Antippen eines Punkts öffnet die Karte (Notiz 1) bzw. das Wort-Etikett (Notiz 2) daneben.</label>
       <label><input type="checkbox"> Beim Antippen ist der Ton zu hören (Lautlos-Schalter aus, Lautstärke an).</label>
-      <label><input type="checkbox"> Antippen des Texts schließt ihn wieder.</label>
+      <label><input type="checkbox"> Die Karte schließt sich nach einigen Sekunden von selbst (Wort 5 s, Notiz 10 s, Info 15 s).</label>
       <label><input type="checkbox"> Eine eigene Aufnahme (🎙) wird in AR abgespielt.</label>
       <label><input type="checkbox"> Das ⓘ-Schild links vorne öffnet beim Antippen die Info-Karte.</label>
       <p class="hinweis">Bitte melde Claude, welche Punkte klappen und welche nicht.</p>
@@ -446,7 +446,8 @@ ${sichtbarkeitsAktion("Aktion", "hide", panels, I + "    ")}${I}}
   szene.notizen.forEach((n, i) => {
     const N = `${S}/Notiz_${i}`;
     const B = `${S}/Notiz_${i}_Oeffnen`;
-    const aktionen = [`${B}/Gruppe/Zeigen`];
+    const dauer = n.dauer || 8;
+    const aktionen = [`${B}/Gruppe/Ablauf`];
     if (n.ton) aktionen.push(`${B}/Gruppe/Ton`);
     verhalten += `${I}def Preliminary_Behavior "Notiz_${i}_Oeffnen"
 ${I}{
@@ -468,24 +469,24 @@ ${I}        bool loops = 0
 ${I}        int performCount = 1
 ${I}        token type = "parallel"
 
-${sichtbarkeitsAktion("Zeigen", "show", [`${N}/Panel`], I + "        ")}${n.ton ? tonAktion("Ton", N, n.ton, I + "        ") : ""}${I}    }
+${I}        def Preliminary_Action "Ablauf"
+${I}        {
+${I}            rel actions = [<${B}/Gruppe/Ablauf/Zeigen>, <${B}/Gruppe/Ablauf/Warten>, <${B}/Gruppe/Ablauf/Verstecken>]
+${I}            token info:id = "Group"
+${I}            bool loops = 0
+${I}            int performCount = 1
+${I}            token type = "serial"
+
+${sichtbarkeitsAktion("Zeigen", "show", [`${N}/Panel`], I + "            ")}
+${I}            def Preliminary_Action "Warten"
+${I}            {
+${I}                double duration = ${zahl(dauer)}
+${I}                token info:id = "Wait"
+${I}            }
+
+${sichtbarkeitsAktion("Verstecken", "hide", [`${N}/Panel`], I + "            ")}${I}        }
+${n.ton ? tonAktion("Ton", N, n.ton, I + "        ") : ""}${I}    }
 ${I}}
-
-`;
-    const B2 = `${S}/Notiz_${i}_Schliessen`;
-    verhalten += `${I}def Preliminary_Behavior "Notiz_${i}_Schliessen"
-${I}{
-${I}    rel actions = <${B2}/Aktion>
-${I}    uniform bool exclusive = 0
-${I}    rel triggers = <${B2}/Ausloeser>
-
-${I}    def Preliminary_Trigger "Ausloeser"
-${I}    {
-${I}        rel affectedObjects = <${N}/Panel>
-${I}        token info:id = "TapGesture"
-${I}    }
-
-${sichtbarkeitsAktion("Aktion", "hide", [`${N}/Panel`], I + "    ")}${I}}
 
 `;
   });
@@ -605,7 +606,7 @@ function zeichnePanel(n) {
   const zeilen = textUmbruch(x, n.text || "", c.width - 100).slice(0, 8);
   zeilen.forEach((z, i) => x.fillText(z, 50, 150 + i * 56));
   x.fillStyle = "#8A8F9C"; x.font = "32px system-ui, sans-serif";
-  x.fillText("Tippen zum Schließen", 50, c.height - 62);
+  x.fillText("schließt sich von selbst", 50, c.height - 62);
   return c;
 }
 function zeichneInfoSchild() {
@@ -630,7 +631,7 @@ function zeichneInfoPanel() {
   x.font = "42px system-ui, -apple-system, sans-serif";
   textUmbruch(x, info.text || "", c.width - 120).slice(0, 13).forEach((z, i) => x.fillText(z, 60, 200 + i * 52));
   x.fillStyle = "#8A8F9C"; x.font = "32px system-ui, sans-serif";
-  x.fillText("Tippen zum Schließen", 60, c.height - 60);
+  x.fillText("schließt sich von selbst", 60, c.height - 60);
   return c;
 }
 function infoLage() {
@@ -667,39 +668,51 @@ let klickbar = [];
 // Sucht eine Lage für die Karte, bei der sie von vorne nicht im Tier steckt
 const lageCache = new Map();
 function panelLage(punkt, b, h, wort) {
-  const schluessel = punkt.p.map((v) => v.toFixed(4)).join(",") + "|" + b.toFixed(3) + "|" + h.toFixed(3) + "|" + (tierGruppe ? tierGruppe.uuid : "");
+  const schluessel = punkt.p.map((v) => v.toFixed(4)).join(",") + "|" + b.toFixed(3) + "|" + h.toFixed(3) + "|" + (tierGruppe ? tierGruppe.uuid : "") + "|" + notizen.map((m) => m.punkt ? m.punkt.p.join(",") : "-").join(";");
   if (lageCache.has(schluessel)) return lageCache.get(schluessel);
   let dx = punkt.n[0], dz = punkt.n[2];
   const l = Math.hypot(dx, dz);
   if (l < 0.35) { dx = 0; dz = 1; } else { dx /= l; dz /= l; }
   const drehung = Math.atan2(dx, dz);
   const vorne = new THREE.Vector3(dx, 0, dz), rechts = new THREE.Vector3(dz, 0, -dx);
-  const basis = new THREE.Vector3().fromArray(punkt.p);
+  const basis = new THREE.Vector3().fromArray(punktMitte(punkt));
   const ray = new THREE.Raycaster();
   const hoch = h / 2 + (wort ? 0.03 : 0.035);
   let versatz = null;
   if (tierGruppe) tierGruppe.updateMatrixWorld(true);
-  for (let d = wort ? 0.03 : 0.05; d <= 0.6; d += 0.03) {
-    let yy = hoch;
+  const pruefe = (d, heben) => {
+    let yy = hoch + heben;
     if (basis.y + yy - h / 2 < 0.01) yy = 0.01 - basis.y + h / 2; // nicht unter den Boden
     const mitte = basis.clone().addScaledVector(vorne, d); mitte.y += yy;
-    let frei = true;
-    if (tierGruppe) {
-      for (const u of [-0.45, 0, 0.45]) for (const v of [-0.45, 0, 0.45]) {
-        if (!frei) break;
-        const s = mitte.clone().addScaledVector(rechts, u * b); s.y += v * h;
-        ray.set(s.clone().addScaledVector(vorne, 1.5), vorne.clone().negate());
-        const t = ray.intersectObject(tierGruppe, true)[0];
-        if (t && t.distance < 1.495) frei = false;
-      }
+    const v = [dx * d, yy, dz * d];
+    // 1) von vorne nicht im Tier versteckt
+    if (tierGruppe) for (const u of [-0.45, 0, 0.45]) for (const w of [-0.45, 0, 0.45]) {
+      const s = mitte.clone().addScaledVector(rechts, u * b); s.y += w * h;
+      ray.set(s.clone().addScaledVector(vorne, 1.5), vorne.clone().negate());
+      const t = ray.intersectObject(tierGruppe, true)[0];
+      if (t && t.distance < 1.495) return { v, frei: false };
     }
-    versatz = [dx * d, yy, dz * d];
-    if (frei) break;
+    // 2) verdeckt keinen anderen Punkt, der dahinter liegt
+    for (const andere of notizen) {
+      if (!andere.punkt || andere.punkt === punkt) continue;
+      const q = new THREE.Vector3().fromArray(punktMitte(andere.punkt)).sub(mitte);
+      if (q.dot(vorne) < 0.02 && Math.abs(q.dot(rechts)) < b / 2 + 0.04 && Math.abs(q.y) < h / 2 + 0.04) return { v, frei: false };
+    }
+    return { v, frei: true };
+  };
+  suche: for (const heben of [0, 0.05, 0.1, 0.16, 0.24, 0.34]) {
+    for (let d = wort ? 0.03 : 0.05; d <= 0.45; d += 0.04) {
+      const r = pruefe(d, heben);
+      if (!versatz) versatz = r.v;
+      if (r.frei) { versatz = r.v; break suche; }
+    }
   }
   const lage = { versatz, drehung };
   lageCache.set(schluessel, lage);
   return lage;
 }
+// Kugel sitzt zu drei Vierteln außerhalb der Oberfläche, damit sie gut antippbar ist
+function punktMitte(punkt) { return punkt.p.map((v, k) => v + punkt.n[k] * PUNKT_R * 0.5); }
 function trefferAufTier(start, richtung) {
   if (!tierGruppe) return null;
   tierGruppe.updateMatrixWorld(true);
@@ -723,7 +736,7 @@ function vorschauNotizen() {
   notizGruppe.clear(); klickbar = [];
   notizen.forEach((n, i) => {
     if (!n.punkt) return;
-    const g = new THREE.Group(); g.position.fromArray(n.punkt.p);
+    const g = new THREE.Group(); g.position.fromArray(punktMitte(n.punkt));
     const bild = panelBild(n);
     const tex = new THREE.CanvasTexture(bild.c); tex.colorSpace = THREE.SRGBColorSpace;
     const farbe = new THREE.Color(FARBEN[n.farbe]);
@@ -992,7 +1005,8 @@ async function neuBauen() {
     if (t && t.endung !== "webm") { ton = `audio/notiz_${szeneDaten.notizen.length}.${t.endung}`; dateien.push({ name: ton, data: t.daten }); }
     const lage = panelLage(n.punkt, bild.b, bild.h, n.typ === "wort");
     szeneDaten.notizen.push({
-      position: n.punkt.p,
+      position: punktMitte(n.punkt),
+      dauer: n.typ === "wort" ? 5 : 10,
       punkt: { radius: PUNKT_R, farbe: new THREE.Color(FARBEN[n.farbe]).toArray() },
       panel: { b: bild.b, h: bild.h, textur: panelName, versatz: lage.versatz, drehungY: lage.drehung * 180 / Math.PI },
       ton,
@@ -1009,6 +1023,7 @@ async function neuBauen() {
       position: lage.p,
       punkt: { karte: { ...INFO_SCHILD, textur: schildName } },
       panel: { ...INFO_PANEL, textur: panelName, versatz: lage.versatz, drehungY: 0 },
+      dauer: 15,
       ton,
     });
   }
